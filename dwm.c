@@ -1163,17 +1163,12 @@ enternotify(XEvent *e) {
    Monitor *m;
    XCrossingEvent *ev = &e->xcrossing;
 
+   /*
    if((ev->mode != NotifyNormal || ev->detail == NotifyInferior))
       return;
+   */
 
    if((m = wintomon(ev->window)) && m != selmon) {
-      unfocus(selmon->sel, True);
-      selmon = m;
-      focus(NULL);
-      drawbar(selmon);
-   }
-   else
-   if((m = wintomon(ev->root)) && m != selmon) {
       unfocus(selmon->sel, True);
       selmon = m;
       focus(NULL);
