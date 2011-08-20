@@ -1,0 +1,25 @@
+#!/bin/bash
+#
+# DWM Autostart
+# Put all applications you want to start here
+#
+# When you execeute another process, if the parent dies, child becomes a root,
+# so you can easily get zombie processes. I suggest debugging your autostart with pstree.
+#
+# Autostart can be anything that is executable, but we are using bash as example here,
+#
+
+# start xeyes
+xeyes &
+
+# IMPORTANT!
+# Avoids this script from exiting until DWM finishes
+# Do this for all parent shell scripts too.
+# Use pstree to debug your autostart
+# note: it's possible to find DWM's PID by other means,
+# but bash provides it out of the box neatly
+while kill -0 $PPID; do sleep 10; done
+
+# Exit
+# If you get any zombies, kill them here
+# eg. killall redshift

@@ -1,1 +1,4 @@
-dwm fork, with systray, margins, offscreening, etc..
+DWM(-plus) fork, with some patches, and lots of modified code.
+Documentation later
+
+Autostart goes in $HOME/.config/dwm/autostart

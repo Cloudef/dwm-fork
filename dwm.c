@@ -266,10 +266,10 @@ static void	      mappingnotify(XEvent *e);
 static void	      maprequest(XEvent *e);
 static void	      monocle(Monitor *m);
 static void	      movemouse(const Arg *arg);
-static Client	     *nexttiled(Client *c);
-static Monitor	     *ptrtomon(int x, int y);
+static Client	   *nexttiled(Client *c);
+static Monitor	   *ptrtomon(int x, int y);
 static void	      propertynotify(XEvent *e);
-pid_t             shexec(const char *cmd);
+static pid_t      shexec(const char *cmd);
 static void	      quit(const Arg *arg);
 static void	      resize(Client *c, int x, int y, int w, int h, Bool interact);
 static void	      resizeclient(Client *c, int x, int y, int w, int h);
@@ -285,7 +285,7 @@ static void	      setup(void);
 static void	      showhide(Client *c);
 static void	      sigchld(int unused);
 static void	      spawn(const Arg *arg);
-pid_t             tpawn(const char *format, ...);
+static pid_t      tpawn(const char *format, ...);
 static void	      tag(const Arg *arg);
 static void	      tagmon(const Arg *arg);
 static int	      textnw(const char *text, unsigned int len);
@@ -2151,7 +2151,8 @@ sigchld(int unused) {
 
 void
 spawn(const Arg *arg) {
-   if(fork() == 0) {
+   pid_t pid;
+   if(pid = fork() == 0) {
       if(dpy)
          close(ConnectionNumber(dpy));
       setsid();

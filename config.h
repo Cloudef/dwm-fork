@@ -76,7 +76,7 @@ static const Rule rules[] = {
    { "URxvt",    NULL,       "SnowNews", 1 << 3,       NORMAL,        1 },
    { "URxvt",    NULL,       "MSN",      1 << 2,       NORMAL,        1 },
    { "URxvt",    NULL,       "IRSSI",    1 << 1,       NORMAL,        1 },
-   { "OperaNext", NULL,      NULL,       1,            NORMAL,        -1 },
+   { "OperaNext", NULL,      NULL,       0,            NORMAL,        -1 },
 };
 
 /* layout(s) */
