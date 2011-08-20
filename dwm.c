@@ -1172,6 +1172,13 @@ enternotify(XEvent *e) {
       focus(NULL);
       drawbar(selmon);
    }
+   else
+   if((m = wintomon(ev->root)) && m != selmon) {
+      unfocus(selmon->sel, True);
+      selmon = m;
+      focus(NULL);
+      drawbar(selmon);
+   }
 
    if((c = wintoclient(ev->window)))
       focus(c);
@@ -2153,7 +2160,7 @@ spawn(const Arg *arg) {
       execvp(((char **)arg->v)[0], (char **)arg->v);
       fprintf(stderr, "dwm: execvp %s", ((char **)arg->v)[0]);
       perror(" failed");
-      exit(0);
+      _exit(0);
    }
 }
 
@@ -2419,7 +2426,6 @@ updategeom(void) {
             else
                mons = createmon();
          }
-         if(m) m->primary = 1; // Last == primary for systray
          for(i = 0, m = mons; i < nn && m; m = m->next, i++)
             if(i >= n
                   || (unique[i].x_org != m->mx || unique[i].y_org != m->my
@@ -2433,6 +2439,9 @@ updategeom(void) {
                m->mh = m->wh = m->oh = unique[i].height + edges[i].h - margins[i].h;
                m->margin = &margins[i];
                m->edge   = &edges[i];
+
+               if(i == PRIMARY_MONITOR) m->primary = 1; else m->primary = 0;
+
                updatebarpos(m);
             }
       }
@@ -3251,7 +3260,8 @@ void launcher(const Arg *arg){
    return;
 }
 
-pid_t shexec(const char *cmd){
+pid_t
+shexec(const char *cmd){
    char *sh = NULL;
    pid_t pid;
 
@@ -3261,8 +3271,9 @@ pid_t shexec(const char *cmd){
       if(dpy) close(ConnectionNumber(dpy));
 
       setsid();
-      execl(sh, sh, "-c", cmd, (char*)NULL);
+      execlp(sh, sh, "-c", cmd, (char*)NULL);
       err(1, "execl(%s)", cmd);
+      _exit(0);
    }
    if (pid == -1)
       warn("fork()");
@@ -3270,7 +3281,7 @@ pid_t shexec(const char *cmd){
    return pid;
 }
 
-   pid_t
+pid_t
 tpawn(const char *format, ...)
 {
    char *sh = NULL;
@@ -3297,9 +3308,9 @@ tpawn(const char *format, ...)
       if(dpy)
          close(ConnectionNumber(dpy));
       setsid();
-      if (execl(sh, sh, "-c", cmd, (char*)NULL) == -1)
+      if (execlp(sh, sh, "-c", cmd, (char*)NULL) == -1)
          warn("execl(sh -c %s)", cmd);
-      exit(EXIT_FAILURE);
+      _exit(0);
    }
    else if (pid == -1)
       warn("fork");

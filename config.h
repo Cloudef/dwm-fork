@@ -31,12 +31,14 @@ static const Bool systray_enable = True;
 static const int systray_spacing = 2;
 static const int status_height   = 0;
 
+#define PRIMARY_MONITOR 1
+
 /* define monitor edge offsets, this is great if windows go out of screen */
 /* out of bounds, if array smaller than number of monitors */
 static const Edge edges[] = {
    /* X   Y   W   H */
-   {  1,  0,  0,  0 }, // 1
-   {  1,  0, -5,  1 }, // 2
+   {  0,  0,  1,  0 }, // 1
+   {  0,  0, -4,  1 }, // 2
 };
 
 /* margins */
