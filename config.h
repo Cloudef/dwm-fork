@@ -1,7 +1,10 @@
-/* See LICENSE file for copyright and license details. */
+/*
+ * config.h
+ */
 
 /* appearance */
 static const char font[] = "IPAMonaGothic 7";
+
 #define NUMCOLORS 8
 static const char colors[NUMCOLORS][ColLast][8] = {
    { "#010101", "#cccccc", "#121212" }, // 0 = normal
@@ -13,19 +16,12 @@ static const char colors[NUMCOLORS][ColLast][8] = {
    { "#ffffff", "#cc3300", "#dddddd" }, // 6 =
    { "#ffffff", "#cccccc", "#313131" }, // 7 = Status area
 };
-/*
-static const char normbordercolor[] = "#313131";
-static const char normbgcolor[]     = "#121212";
-static const char normfgcolor[]     = "#cccccc";
-static const char selbordercolor[]  = "#313131";
-static const char selbgcolor[]      = "#212121";
-static const char selfgcolor[]      = "#ffffff";
-*/
 
 static const unsigned int borderpx  = 1;        /* border pixel of windows */
 static const unsigned int snap      = 32;       /* snap pixel */
 static const Bool showbar           = True;     /* False means no bar */
 static const Bool topbar            = True;     /* False means bottom bar */
+static const Bool clicktofocus      = True;
 
 static const Bool systray_enable = True;
 static const int systray_spacing = 2;
@@ -33,49 +29,52 @@ static const int status_height   = 0;
 
 #define PRIMARY_MONITOR 1
 
-/* define monitor edge offsets, this is great if windows go out of screen */
-/* out of bounds, if array smaller than number of monitors */
+/* display edges, similar to margins expect
+ * everything gets affected */
 static const Edge edges[] = {
    /* X   Y   W   H */
-   {  0,  0,  1,  0 }, // 1
-   {  0,  0, -4,  1 }, // 2
+   {  0,  0,  0,  0 }, // 1
+   {  0,  0,  4, -1 }, // 2
 };
 
-/* margins */
+/* window area margins */
 static const Edge margins[] = {
    /* X   Y   W   H */
-   {  0,  2,  0,  9 }, // 1 NOTE: This adds the bottom bar cap
-   {  0,  2,  0,  0 }, // 2 NOTE: Second monitor has no bar
+   {  0,  0,  0, 10 }, // 1 NOTE: This adds the bottom bar cap
+   {  0,  0,  0,  0 }, // 2 NOTE: Second monitor has no bar
 };
-
-/* All H margins get toggled on togglebar() function if this is 1 */
-#define BOTTOM_MARGIN_IS_BAR 1
 
 /* tagging */
 static const char *tags[] = { "東", "方", "P", "R", "O", "J", "E", "C", "T" };
 Bool autohide             = False;
 
-/*             floating,widget,below.zombie,sticky */
-#define NORMAL False,False,False,False,False
-#define FLOAT  True,False,False,False,False
-#define WIDGET True,True,False,False,True
-#define CONKY  True,True,True,True,True
-#define URXVTQ True,False,False,False,True
-#define TRAY   True,True,False,True,True
+/* floating = floating window
+ * widget   = window without border and statusbar
+ * below    = always below
+ * above    = always above
+ * zombie   = do not take input
+ * sticky   = stay on all tags
+ */
+/*             floating,widget,  below.   above,   zombie,  sticky */
+#define NORMAL False,   False,   False,   False,   False,   False
+#define FLOAT  True,    False,   False,   False,   False,   False
+#define WIDGET True,    True,    False,   False,   False,   True
+#define CONKY  True,    True,    True,    False,   True,    True
+#define URXVTQ True,    False,   False,   True,    False,   True
 
 static const Rule rules[] = {
 	/* class      instance    title       tags mask     type           monitor */
    { "Gimp",     NULL,       NULL,       0,            FLOAT,         -1 },
-   { "URxvt",    NULL,       "URxvtq",   0,            URXVTQ,        -1 },
+   { "URxvt",    NULL,       "URxvtq",   0,            URXVTQ,         0 },
+   { "Oblogout", NULL,       NULL,       0,            URXVTQ,         0 },
    { "MaCoPiX",  NULL,       NULL,       0,            WIDGET,        -1 },
    { "Kupfer.py",NULL,       NULL,       0,            WIDGET,        -1 },
    { "dzen",     NULL,       NULL,       0,            CONKY,         -1 },
-   { "Conky",    NULL,       NULL,       0,            CONKY,         1 },
-   { "trayer",   NULL,       NULL,       0,            TRAY,          -1 },
-   { "URxvt",    NULL,       "rTorrent", 1 << 4,       NORMAL,        1 },
-   { "URxvt",    NULL,       "SnowNews", 1 << 3,       NORMAL,        1 },
-   { "URxvt",    NULL,       "MSN",      1 << 2,       NORMAL,        1 },
-   { "URxvt",    NULL,       "IRSSI",    1 << 1,       NORMAL,        1 },
+   { "Conky",    NULL,       NULL,       0,            CONKY,          1 },
+   { "URxvt",    NULL,       "rTorrent", 1 << 4,       NORMAL,         1 },
+   { "URxvt",    NULL,       "SnowNews", 1 << 3,       NORMAL,         1 },
+   { "URxvt",    NULL,       "MSN",      1 << 2,       NORMAL,         1 },
+   { "URxvt",    NULL,       "IRSSI",    1 << 1,       NORMAL,         1 },
    { "OperaNext", NULL,      NULL,       0,            NORMAL,        -1 },
 };
 
@@ -128,7 +127,7 @@ static Key keys[] = {
    { 0,                            XK_section,spawn,         SHCMD("$HOME/.config/dwm/urxvtq") },
 	{ MODKEY,                       XK_p,      spawn,          {.v = dmenucmd } },
 	{ MODKEY|ShiftMask,             XK_Return, spawn,          {.v = termcmd } },
-	{ MODKEY,                       XK_b,      togglebar,      {0} },
+	{ MODKEY,                       XK_b,      togglebar,      {.i = -1} },
 	{ MODKEY,                       XK_j,      focusstack,     {.i = +1 } },
 	{ MODKEY,                       XK_k,      focusstack,     {.i = -1 } },
 	{ MODKEY,                       XK_h,      setmfact,       {.f = -0.05} },
@@ -136,6 +135,7 @@ static Key keys[] = {
 	{ MODKEY,                       XK_Return, zoom,           {0} },
 	{ MODKEY,                       XK_q,      killclient,     {0} },
    { ALTKEY,                       XK_s,      resizemouse,    {0} },
+   { MODKEY,                       XK_s,      togglesticky,   {0} },
    { ALTKEY,                       XK_F2,     spawn,          {.v = kupfer} },
 	{ MODKEY,                       XK_0,      view,           {.ui = ~0 } },
 	{ MODKEY|ShiftMask,             XK_0,      tag,            {.ui = ~0 } },
@@ -143,10 +143,11 @@ static Key keys[] = {
 	{ MODKEY,                       XK_period, focusmon,       {.i = +1 } },
 	{ MODKEY|ShiftMask,             XK_comma,  tagmon,         {.i = -1 } },
 	{ MODKEY|ShiftMask,             XK_period, tagmon,         {.i = +1 } },
-   { MODKEY,                       XK_x,      nextlayout,     {0} },
-   { MODKEY,                       XK_z,      prevlayout,     {0} },
- 	{ MODKEY,                       XK_c, zoom,                {0} },
-   { MODKEY,                       XK_F12,    setlayout,      {.v = &layouts[5]} },
+   { MODKEY,                       XK_KP_End,   nextlayout,     {0} },
+   { MODKEY,                       XK_KP_Down,  prevlayout,     {0} },
+ 	{ MODKEY,                       XK_KP_Insert,zoom,           {0} },
+  	{ MODKEY,                       XK_KP_Delete,togglefloating,{0} },
+   { MODKEY,                       XK_F12,    togglelayout,   {.v = &layouts[5]} },
 	TAGKEYS(                        XK_1,                      0)
 	TAGKEYS(                        XK_2,                      1)
 	TAGKEYS(                        XK_3,                      2)
@@ -157,6 +158,7 @@ static Key keys[] = {
 	TAGKEYS(                        XK_8,                      7)
 	TAGKEYS(                        XK_9,                      8)
 	{ MODKEY,                       XK_Escape, spawn,          {.v = oblogout} },
+   { MODKEY|ShiftMask,             XK_q,      restart,         {0} }
 };
 
 /* button definitions */
@@ -171,7 +173,9 @@ static Button buttons[] = {
 	{ ClkStatusText,        0,              Button2,        spawn,          {.v = termcmd } },
 	{ ClkClientWin,         ALTKEY,         Button1,        movemouse,      {0} },
 	{ ClkClientWin,         ALTKEY,         Button2,        togglefloating, {0} },
+ 	{ ClkClientWin,         MODKEY,         Button2,        togglefloating, {0} },
 	{ ClkClientWin,         ALTKEY,         Button3,        resizemouse,    {0} },
+ 	{ ClkClientWin,         MODKEY,         Button3,        zoom,           {0} },
 	{ ClkTagBar,            0,              Button1,        view,           {0} },
 	{ ClkTagBar,            0,              Button3,        toggleview,     {0} },
 	{ ClkTagBar,            ALTKEY,         Button1,        tag,            {0} },

@@ -1,25 +1,3 @@
-/* See LICENSE file for copyright and license details.
- *
- * dynamic window manager is designed like any other X client as well. It is
- * driven through handling X events. In contrast to other X clients, a window
- * manager selects for SubstructureRedirectMask on the root window, to receive
- * events about window (dis-)appearance.  Only one X connection at a time is
- * allowed to select for this event mask.
- *
- * The event handlers of dwm are organized in an array which is accessed
- * whenever a new event has been fetched. This allows event dispatching
- * in O(1) time.
- *
- * Each child of the root window is called a client, except windows which have
- * set the override_redirect flag.  Clients are organized in a linked client
- * list on each monitor, the focus history is remembered through a stack list
- * on each monitor. Each client contains a bit array to indicate the tags of a
- * client.
- *
- * Keys and tagging rules are organized as arrays and defined in config.h.
- *
- * To understand everything else, start reading main().
- */
 #include <errno.h>
 #include <locale.h>
 #include <stdarg.h>
@@ -108,7 +86,7 @@ struct Client {
    int basew, baseh, incw, inch, maxw, maxh, minw, minh;
    int bw, oldbw;
    unsigned int tags;
-   Bool isfixed, isfloating, iswidget, isbelow, iszombie, issticky, isurgent, oldstate;
+   Bool isfullscreen, isfixed, isfloating, iswidget, isbelow, isabove, iszombie, issticky, isurgent, oldstate;
    Client *next;
    Client *snext;
    Monitor *mon;
@@ -177,6 +155,7 @@ struct Monitor {
    Monitor				*next;
    Window				 barwin;
    const Layout		*lt[2];
+   const Layout      *olt;
    int					 primary;
    Edge              *margin;
    Edge              *edge;
@@ -191,7 +170,7 @@ typedef struct {
    const char *instance;
    const char *title;
    unsigned int tags;
-   Bool isfloating, iswidget, isbelow, iszombie, issticky;
+   Bool isfloating, iswidget, isbelow, isabove, iszombie, issticky;
    int monitor;
 } Rule;
 
@@ -271,6 +250,7 @@ static Monitor	   *ptrtomon(int x, int y);
 static void	      propertynotify(XEvent *e);
 static pid_t      shexec(const char *cmd);
 static void	      quit(const Arg *arg);
+static void       togglesticky(const Arg *arg);
 static void	      resize(Client *c, int x, int y, int w, int h, Bool interact);
 static void	      resizeclient(Client *c, int x, int y, int w, int h);
 static void	      resizemouse(const Arg *arg);
@@ -280,6 +260,7 @@ static void	      scan(void);
 static void	      sendmon(Client *c, Monitor *m);
 static void	      setclientstate(Client *c, long state);
 static void	      setlayout(const Arg *arg);
+static void       togglelayout(const Arg *arg);
 static void	      setmfact(const Arg *arg);
 static void	      setup(void);
 static void	      showhide(Client *c);
@@ -367,7 +348,7 @@ static void (*handler[LASTEvent]) (XEvent *) = {
    [UnmapNotify]			     = unmapnotify
 };
 
-/*注意：不要使用static，否则系统托盘无法正常加载！*/
+/* atoms */
 Atom wmatom[WMLast] , netatom[NetLast];
 
 static Bool otherwm;
@@ -410,6 +391,7 @@ applyrules(Client *c) {
             c->isfloating = r->isfloating;
             c->iswidget   = r->iswidget;
             c->isbelow    = r->isbelow;
+            c->isabove    = r->isabove;
             c->iszombie   = r->iszombie;
             c->issticky   = r->issticky;
             c->tags |= r->tags;
@@ -561,13 +543,11 @@ buttonpress(XEvent *e) {
       unfocus(selmon->sel, True);
       selmon = m;
       focus(NULL);
-      drawbar(selmon);
    }
 
    if(ev->window == selmon->barwin) {
       i = x = 0;
       do {
-         // 只让有内容显示的tag响应鼠标单击事件
          if(autohide) {
             if((occ & 1 << i ) || (m->tagset[m->seltags] & 1 << i))
                x += TEXTW(tags[i]);
@@ -577,7 +557,6 @@ buttonpress(XEvent *e) {
       } while(ev->x >= x && ++i < LENGTH(tags));
 
       if(i < LENGTH(tags)) {
-         // 只让有内容显示的tag响应鼠标单击事件
          if(autohide) {
             if((occ & 1 << i ) || (m->tagset[m->seltags] & 1 << i))
             {
@@ -595,20 +574,20 @@ buttonpress(XEvent *e) {
       else if(ev->x > selmon->wx + selmon->ww - TEXTW(stext))
          click = ClkStatusText;
       else{
-         arg.ui = ev->x; //鼠标点击切换窗口焦点，否则鼠标点击后没有任何反应
+         arg.ui = ev->x;
          click = ClkWinTitle;
       }
    }
    else if((c = wintoclient(ev->window))) {
       click = ClkClientWin;
       focus(c);
-      drawbar(selmon);
+      selmon = c->mon;
+      if(c->isfloating) XRaiseWindow(dpy, c->win);
    }
 
    for(i = 0; i < LENGTH(buttons); i++)
       if(click                              == buttons[i].click && buttons[i].func && buttons[i].button == ev->button
             && CLEANMASK(buttons[i].mask)   == CLEANMASK(ev->state))
-         //注意加上对窗口标题栏点击：click  == ClkWinTitle，否则鼠标点击无反应
          buttons[i].func((click             == ClkTagBar || click == ClkWinTitle || click == ClkClientWin) && buttons[i].arg.i == 0 ? &arg : &buttons[i].arg);
 }
 
@@ -616,7 +595,7 @@ void
 checkotherwm(void) {
    otherwm = False;
    xerrorxlib = XSetErrorHandler(xerrorstart);
-   /* this causes an error if some other window manager is running */
+
    XSelectInput(dpy, DefaultRootWindow(dpy), SubstructureRedirectMask);
    XSync(dpy, False);
    if(otherwm)
@@ -767,6 +746,7 @@ configurerequest(XEvent *e) {
    XSync(dpy, False);
 }
 
+static const Edge DEDGE = { 0, 0, 0, 0 };
 Monitor *
 createmon(void) {
    Monitor *m;
@@ -780,6 +760,9 @@ createmon(void) {
    m->primary = 0;
    m->lt[0] = &layouts[0];
    m->lt[1] = &layouts[1 % LENGTH(layouts)];
+   m->olt   = NULL;
+   m->edge   = &DEDGE;
+   m->margin = &DEDGE;
    strncpy(m->ltsymbol, layouts[0].symbol, sizeof m->ltsymbol);
    return m;
 }
@@ -857,7 +840,7 @@ drawbar(Monitor *m) {
    DC seldc;
 
    for(c = m->clients; c; c = c->next) {
-      if(ISVISIBLE(c))
+      if(ISVISIBLE(c) && !c->iswidget)
          n++;
       occ |= c->tags;
       if(c->isurgent)
@@ -871,7 +854,7 @@ drawbar(Monitor *m) {
          1 : (urg & 1 << i ? 2:0) ];
       if(autohide) {
 
-         if((occ & 1 << i ) || (m->tagset[m->seltags] & 1 << i)) { // 自动隐藏没有内容的tag
+         if((occ & 1 << i ) || (m->tagset[m->seltags] & 1 << i)) {
             dc.w = TEXTW(tags[i]);
             tagcount ++;
             drawtext(tags[i], col , True);
@@ -932,7 +915,7 @@ drawbar(Monitor *m) {
       m->titlebarend=dc.x;
    }
 
-   for(c = m->clients; c && !ISVISIBLE(c) && c->iswidget; c = c->next);
+   for(c = m->clients; c && (!ISVISIBLE(c) || c->iswidget); c = c->next);
       firstvis = c;
 
    // col = m == selmon ? dc.sel : dc.norm;
@@ -949,7 +932,7 @@ drawbar(Monitor *m) {
          lastvis = c;
          tw = TEXTW(c->name);
          if(tw < mw) extra += (mw - tw); else i++;
-         for(c = c->next; c && !ISVISIBLE(c) && c->iswidget; c = c->next);
+         for(c = c->next; c && (!ISVISIBLE(c) || c->iswidget); c = c->next);
       }
 
       if(i > 0) mw += extra / i;
@@ -960,29 +943,28 @@ drawbar(Monitor *m) {
    m->titlebarbegin = dc.x;
    while(dc.w > bh) {
       if(c) {
-         if(!c->iswidget)
-         {
-            ow = dc.w;
-            tw = TEXTW(c->name);
-            dc.w = MIN(ow, tw);
 
-            if(dc.w > mw) dc.w    = mw;
-            if(m->sel == c) seldc = dc;
-            if(c == lastvis) dc.w = ow;
+         ow = dc.w;
+         tw = TEXTW(c->name);
+         dc.w = MIN(ow, tw);
 
-            drawtext(c->name, col , True);
+         if(dc.w > mw) dc.w    = mw;
+         if(m->sel == c) seldc = dc;
+         if(c == lastvis) dc.w = ow;
 
-            if(c != firstvis)
-               drawvline(col);
+         drawtext(c->name, col , True);
 
-            istitledraw = True;
-            drawsquare(c->isfixed, c->isfloating, False, col);
-            istitledraw = False;
+         if(c != firstvis)
+            drawvline(col);
 
-            dc.x += dc.w;
-            dc.w = ow - dc.w;
-         }
-         for(c = c->next; c && !ISVISIBLE(c) && c->iswidget; c = c->next);
+         istitledraw = True;
+         drawsquare(c->isfixed, c->isfloating, False, col);
+         istitledraw = False;
+
+         dc.x += dc.w;
+         dc.w = ow - dc.w;
+
+         for(c = c->next; c && (!ISVISIBLE(c) || c->iswidget); c = c->next);
       } else {
          drawtext(NULL, dc.colors[0] , True);
          break;
@@ -998,7 +980,6 @@ drawbar(Monitor *m) {
       drawsquare(m->sel->isfixed, m->sel->isfloating, True, col);
 
       sel_win = False;
-
    }
 
    bw = m->ww;
@@ -1120,11 +1101,10 @@ drawtext(const char *text, unsigned long col[ColLast], Bool pad) {
 #endif
    x    = dc.x + (h / 2);
    /* shorten text if necessary */
-   for(len = MIN(olen, sizeof buf); len && textnw(text, len) > dc.w - h; len--);
+   for(len = MIN(olen, sizeof buf); len && textnw(text, len) > dc.w; len--);
    if(!len)
       return;
    memcpy(buf, text, len);
-#ifdef XFT
    if(len < olen) {
       for(i = len - 1, p = 0; i; --i, ++p) {
          if(buf[i] & 0x80) { /* 10xxxxxx */
@@ -1144,7 +1124,8 @@ drawtext(const char *text, unsigned long col[ColLast], Bool pad) {
          len -= p - 3;
    }
 
-   pango_layout_set_text(dc.plo, text, len);
+#ifdef XFT
+   pango_layout_set_text(dc.plo, buf, len);
    pango_xft_render_layout(dc.xftdrawable, (col==dc.colors[0]?dc.xftcolors[0]:dc.xftcolors[1])+(ColFG), dc.plo, x * PANGO_SCALE, y * PANGO_SCALE);
 #else
    if(len < olen)
@@ -1163,22 +1144,27 @@ enternotify(XEvent *e) {
    Monitor *m;
    XCrossingEvent *ev = &e->xcrossing;
 
-   /*
-   if((ev->mode != NotifyNormal || ev->detail == NotifyInferior))
-      return;
-   */
+   if(!clicktofocus)
+   {
+      if((ev->mode != NotifyNormal || ev->detail == NotifyInferior))
+         return;
 
-   if((m = wintomon(ev->window)) && m != selmon) {
-      unfocus(selmon->sel, True);
-      selmon = m;
-      focus(NULL);
-      drawbar(selmon);
+      if((m = wintomon(ev->window)) && m != selmon) {
+         unfocus(selmon->sel, True);
+         focus(NULL);
+         selmon = m;
+      }
+
+      if((c = wintoclient(ev->window)))
+         focus(c);
+      else
+         focus(NULL);
    }
-
-   if((c = wintoclient(ev->window)))
-      focus(c);
    else
-      focus(NULL);
+   {
+       if((c = wintoclient(ev->window)))
+         if(c->mon != selmon) { focus(c); selmon = c->mon; }
+   }
 }
 
 void
@@ -1193,11 +1179,11 @@ expose(XEvent *e) {
 void
 focus(Client *c) {
    if(!c || !ISVISIBLE(c) || c->iszombie)
-      for(c = selmon->stack; c && !ISVISIBLE(c) && c->iszombie; c = c->snext);
+      for(c = selmon->stack; c && (!ISVISIBLE(c) || c->iszombie); c = c->snext);
    /* was if(selmon->sel) */
    if(selmon->sel && selmon->sel != c)
       unfocus(selmon->sel, False);
-   if(c && !c->iszombie) {
+   if(c) {
       if(c->mon != selmon)
          selmon = c->mon;
       if(c->isurgent)
@@ -1434,10 +1420,8 @@ initfont(const char *fontstr) {
 
 Bool
 isprotodel(Client *c) {
-   //  注意：需要再次给wmatom赋值，因定义中取消了static，初始化中的wmatom值有可能出现了变化。如果不再次赋值，则客户窗口有可能会收不到关闭的消息（直接kill掉客户窗口），从而导致数据丢失。
    wmatom[WMDelete] = XInternAtom(dpy, "WM_DELETE_WINDOW", False);
 
-   /*方法一*/
    /*	int i, n;
       Atom *protocols;
       Bool ret = False;
@@ -1450,7 +1434,6 @@ isprotodel(Client *c) {
       }
       return ret;*/
 
-   /*方法二*/
    /*	int n;
       Atom *protocols;
       Bool ret = False;
@@ -1462,7 +1445,6 @@ isprotodel(Client *c) {
       }
       return ret;*/
 
-   /*方法三*/
    int	canbedel = 0;
    Atom *atom = NULL;
    int proto;
@@ -1511,7 +1493,6 @@ keypress(XEvent *e) {
 void
 killclient(const Arg *arg) {
    XEvent	ev;
-   //  注意：需要再次给wmatom赋值，因定义中取消了static，初始化中的wmatom值有可能出现了变化。如果不再次赋值，则客户窗口有可能会收不到关闭的消息（直接kill掉客户窗口），从而导致数据丢失。
    wmatom[WMProtocols] = XInternAtom(dpy, "WM_PROTOCOLS", False);
    wmatom[WMDelete] = XInternAtom(dpy, "WM_DELETE_WINDOW", False);
 
@@ -1588,8 +1569,7 @@ manage(Window w, XWindowAttributes *wa) {
    }
    wc.border_width = c->bw;
    XConfigureWindow(dpy, w, CWBorderWidth, &wc);
-   if(!c->iswidget)
-      XSetWindowBorder(dpy, w, dc.colors[0][ColBorder]);
+   XSetWindowBorder(dpy, w, dc.colors[0][ColBorder]);
    configure(c); /* propagates border_width, if size doesn't change */
    updatesizehints(c);
    updatewmhints(c);
@@ -1599,7 +1579,7 @@ manage(Window w, XWindowAttributes *wa) {
    if(!c->isfloating)
       c->isfloating = c->oldstate = trans != None || c->isfixed;
 
-   if(c->isfloating && !c->isbelow)
+   if(c->isfloating || c->isabove)
       XRaiseWindow(dpy, c->win);
    else if(c->isbelow)
       XLowerWindow(dpy, c->win);
@@ -1637,7 +1617,7 @@ void
 maprequest(XEvent *e) {
    static XWindowAttributes wa;
    XMapRequestEvent *ev = &e->xmaprequest;
-   Systray *s; //系统托盘相关
+   Systray *s;
 
    if((s = systray_find(ev->window)))
    {
@@ -1654,7 +1634,6 @@ maprequest(XEvent *e) {
       manage(ev->window, &wa);
 }
 
-/*单个窗口显示（窗口最大化显示）*/
 void
 monocle(Monitor *m) {
    unsigned int n = 0;
@@ -1667,6 +1646,18 @@ monocle(Monitor *m) {
       snprintf(m->ltsymbol, sizeof m->ltsymbol, "[%d]", n);
    for(c = nexttiled(m->clients); c; c = nexttiled(c->next))
       resize(c, m->wx, m->wy, m->ww - 2 * c->bw, m->wh - 2 * c->bw, False);
+}
+
+void togglesticky(const Arg *arg) {
+   Client *c;
+   if(!(c = selmon->sel))
+      return;
+   if(c->iszombie)
+      return;
+
+   c->issticky = !c->issticky;
+   if(!c->issticky)
+      c->tags = c->mon->tagset[c->mon->seltags];
 }
 
 void
@@ -1748,7 +1739,7 @@ ptrtomon(int x, int y) {
 void
 propertynotify(XEvent *e) {
    Client *c;
-   Systray *s;//系统托盘
+   Systray *s;
    Window trans;
    XPropertyEvent *ev = &e->xproperty;
 
@@ -1798,27 +1789,31 @@ clientmessage(XEvent *e) {
       if(cme->data.l[0]) {
          XChangeProperty(dpy, cme->window, netatom[NetWMState], XA_ATOM, 32,
                PropModeReplace, (unsigned char*)&netatom[NetWMFullscreen], 1);
+         c->isfullscreen = True;
          c->oldstate = c->isfloating;
          c->oldbw = c->bw;
          c->bw = 0;
          c->isfloating = 1;
-         resizeclient(c, c->mon->mx, c->mon->my, c->mon->mw, c->mon->mh);
+         togglebar(&((Arg){ .i = 0 }));
+         resizeclient(c, c->mon->ox, c->mon->oy, c->mon->ow, c->mon->oh);
          if(!c->isbelow) XRaiseWindow(dpy, c->win);
       }
       else {
          XChangeProperty(dpy, cme->window, netatom[NetWMState], XA_ATOM, 32,
                PropModeReplace, (unsigned char*)0, 0);
+         c->isfullscreen = False;
          c->isfloating = c->oldstate;
          c->bw = c->oldbw;
          c->x = c->oldx;
          c->y = c->oldy;
          c->w = c->oldw;
          c->h = c->oldh;
+         togglebar(&((Arg){ .i = 1 }));
          resizeclient(c, c->x, c->y, c->w, c->h);
          arrange(c->mon);
       }
    }
-   else						// 增加系统托盘
+   else
       if(cme->window == traywin) {
          if(cme->data.l[1] == XEMBED_EMBEDDED_NOTIFY){
             systray_add(cme->data.l[2]);
@@ -1933,6 +1928,9 @@ restack(Monitor *m) {
    }
    XSync(dpy, False);
    while(XCheckMaskEvent(dpy, EnterWindowMask, &ev));
+
+   for(c = m->stack; c; c = c->snext)
+      if(c->isabove) XRaiseWindow(dpy,c->win);
 }
 
 void
@@ -2013,6 +2011,30 @@ setclientstate(Client *c, long state) {
 
    XChangeProperty(dpy, c->win, wmatom[WMState], wmatom[WMState], 32,
          PropModeReplace, (unsigned char *)data, 2);
+}
+
+void
+togglelayout(const Arg *arg) {
+   int tmp = selmon->sellt;
+   if(!arg || !arg->v || arg->v != selmon->lt[selmon->sellt])
+      tmp = selmon->sellt ^ 1;
+   if(arg && arg->v)
+   {
+      if(!selmon->olt)
+      {  selmon->olt                = selmon->lt[selmon->sellt]; selmon->sellt = tmp;
+         selmon->lt[selmon->sellt]  = (Layout *)arg->v;        }
+      else
+      { selmon->sellt = tmp;
+        selmon->lt[selmon->sellt]   = selmon->olt;
+        selmon->olt                 = NULL;
+      }
+   }
+
+   strncpy(selmon->ltsymbol, selmon->lt[selmon->sellt]->symbol, sizeof selmon->ltsymbol);
+   if(selmon->sel)
+      arrange(selmon);
+   else
+      drawbar(selmon);
 }
 
 void
@@ -2131,8 +2153,9 @@ showhide(Client *c) {
       return;
    if(ISVISIBLE(c)) { /* show clients top down */
       XMoveWindow(dpy, c->win, c->x, c->y);
-      if(!c->mon->lt[c->mon->sellt]->arrange || c->isfloating)
+      if((!c->mon->lt[c->mon->sellt]->arrange || c->isfloating) && !c->isfullscreen)
          resize(c, c->x, c->y, c->w, c->h, False);
+      if(c->isabove) XRaiseWindow(dpy, c->win);
       showhide(c->snext);
    }
    else { /* hide clients bottom up */
@@ -2152,7 +2175,7 @@ sigchld(int unused) {
 void
 spawn(const Arg *arg) {
    pid_t pid;
-   if(pid = fork() == 0) {
+   if((pid = fork()) == 0) {
       if(dpy)
          close(ConnectionNumber(dpy));
       setsid();
@@ -2213,7 +2236,6 @@ textnw(const char *text, unsigned int len) {
 
 }
 
-// 窗口左右平铺
 void
 tile(Monitor *m) {
    int x, y, h, w, mw;
@@ -2246,7 +2268,10 @@ tile(Monitor *m) {
 
 void
 togglebar(const Arg *arg) {
-   selmon->showbar = !selmon->showbar;
+   if(arg && arg->i != -1)
+      selmon->showbar = arg->i;
+   else
+      selmon->showbar = !selmon->showbar;
    updatebarpos(selmon);
    XMoveResizeWindow(dpy, selmon->barwin, selmon->wx, selmon->by, selmon->ww, bh);
    arrange(selmon);
@@ -2384,14 +2409,13 @@ updatebarpos(Monitor *m) {
    if(m->showbar) {
       m->wh -= bh;
       m->by = m->topbar ? m->wy : m->wy + m->wh;
-      m->wy = m->topbar ? m->wy + bh : m->wy;
+      m->wy = m->topbar ? m->wy + bh + m->margin->y : m->wy;
+      m->wh -= m->margin->h;
    }
    else
    {
       m->by = -bh;
-#if BOTTOM_MARGIN_IS_BAR
-      m->wh = m->oh + m->margin->h + 1; // Bottom margin too, assume you have bar. Windows go over
-#endif
+      m->wh = m->oh;
    }
 }
 
@@ -2434,8 +2458,8 @@ updategeom(void) {
                m->num = i;
                m->mx = m->wx = m->ox = unique[i].x_org  + edges[i].x; m->wx += margins[i].x;
                m->my = m->wy = m->oy = unique[i].y_org  + edges[i].y; m->wy += margins[i].y;
-               m->mw = m->ww = m->ow = unique[i].width  + edges[i].w - margins[i].w;
-               m->mh = m->wh = m->oh = unique[i].height + edges[i].h - margins[i].h;
+               m->mw = m->ww = m->ow = unique[i].width  - edges[i].w; m->ww -= margins[i].w;
+               m->mh = m->wh = m->oh = unique[i].height - edges[i].h; m->wh -= margins[i].h;
                m->margin = &margins[i];
                m->edge   = &edges[i];
 
@@ -2472,10 +2496,10 @@ updategeom(void) {
          mons->primary = 1;
       if(mons->mw != sw || mons->mh != sh) {
          dirty = True;
-         mons->wx = mons->mx = mons->ox = edges[0].x; mons->mx += margins[0].x;
-         mons->wy = mons->my = mons->oy = edges[0].y; mons->my += margins[0].y;
-         mons->mw = mons->ww = mons->ow = sw + edges[0].w - margins[0].w;
-         mons->mh = mons->wh = mons->oh = sh + edges[0].h - margins[0].h;
+         mons->wx = mons->mx = mons->ox = edges[0].x; mons->wx += margins[0].x;
+         mons->wy = mons->my = mons->oy = edges[0].y; mons->wy += margins[0].y;
+         mons->mw = mons->ww = mons->ow = sw - edges[0].w; mons->ww -= margins[0].w;
+         mons->mh = mons->wh = mons->oh = sh - edges[0].h; mons->wh -= margins[0].h;
          mons->margin = &margins[0];
          mons->edge   = &edges[0];
          updatebarpos(mons);
@@ -2693,14 +2717,12 @@ main(int argc, char *argv[]) {
 
 }
 
-//箭头键循环切换tag
-   static void
+static void
 view_adjacent_tag(const Arg *arg, int distance)
 {
    int i, curtags;
    int seltag = 0;
    Arg a;
-   // 注意去掉：^ (arg->ui & TAGMASK)，否则当鼠标在标签页上滚动时会不受控制
    curtags = selmon->tagset[selmon->seltags];// ^ (arg->ui & TAGMASK);
    for (i = 0; i < LENGTH(tags); i++) {
       if ((curtags & (1 << i)) != 0) {
@@ -2745,7 +2767,6 @@ restart(const Arg *arg)
 void
 movestack(const Arg *arg) {
    Client		*c = NULL, *p = NULL, *pc = NULL, *i;
-   // 如果当前没有活动窗口则返回，否则会导致dwm出错而重新登录
    if(!selmon->sel)
       return;
 
@@ -3069,34 +3090,26 @@ dwm_send_message(Window d, Window w, char *atom, long d0, long d1, long d2, long
    return;
 }
 
-// 鼠标点击窗口标题显示区域切换窗口
 void
 focusonclick(const Arg *arg) {
    int x, w, mw = 0, tw, n = 0, i = 0, extra = 0;
    Monitor *m = selmon;
    Client *c, *firstvis;
 
-   // 寻找第一个可视的窗口
    for(c = m->clients; c && !ISVISIBLE(c); c = c->next);
    firstvis								  = c;
-   // 列举当前标签页中所有可视的窗口并记录在变量n中
    for(c = m->clients; c; c = c->next)
       if (ISVISIBLE(c))
          n++;
-   // 如果当前有可视的窗口（有应用程序打开）
+
    if(n > 0) {
-      // 计算当前可视窗口标题宽度的平均值
       mw									  = (m->titlebarend - m->titlebarbegin) / n;
       c									  = firstvis;
-      // 获取第一个窗口的标题栏宽度
       while(c) {
          tw								  = TEXTW(c->name);
-         // 标题栏宽度小于平均宽度，则由extra来记录它们之间的差值，否则由变量i记录当前的窗口数量
          if(tw < mw) extra				  += (mw - tw); else i++;
-         // 下一个没有获得焦点的窗口（不可视的窗口）
          for(c = c->next; c && !ISVISIBLE(c); c = c->next);
       }
-      // 重新计算窗口标题的平均宽度，mw
       if(i > 0) mw += extra / i;
    }
 
@@ -3105,78 +3118,64 @@ focusonclick(const Arg *arg) {
    c = firstvis;
    while(x < m->titlebarend) {
       if(c) {
-         // w等于最小值（窗口标题宽度和窗口标题的平均宽度）
          w =	MIN(TEXTW(c->name), mw);
-         // 如果鼠标在某个窗口标题上面点击，则聚焦这个窗口
          if (x < arg->i && x+w > arg->i) {
             focus(c);
             restack(selmon);
 
             break;
          } else
-            // 重新给开始值
             x+=w;
-         // 寻找下一个可视窗口
+
          for(c = c->next; c && !ISVISIBLE(c); c = c->next);
       }
-      else {// 如果找不到可视窗口，则终止while循环
+      else {
          break;
       }
    }
 
 }
 
-// 鼠标右键点击窗口标题显示区域关闭该窗口
 void
 closeonclick(const Arg *arg) {
    int x, w, mw = 0, tw, n = 0, i = 0, extra = 0;
    Monitor *m = selmon;
    Client *c, *firstvis;
 
-   // 寻找第一个可视的窗口
    for(c = m->clients; c && !ISVISIBLE(c); c = c->next);
    firstvis								  = c;
-   // 列举当前标签页中所有可视的窗口并记录在变量n中
    for(c = m->clients; c; c = c->next)
       if (ISVISIBLE(c))
          n++;
-   // 如果当前有可视的窗口（有应用程序打开）
+
    if(n > 0) {
-      // 计算当前可视窗口标题宽度的平均值
       mw									  = (m->titlebarend - m->titlebarbegin) / n;
       c									  = firstvis;
-      // 获取第一个窗口的标题栏宽度
       while(c) {
          tw								  = TEXTW(c->name);
-         // 标题栏宽度小于平均宽度，则由extra来记录它们之间的差值，否则由变量i记录当前的窗口数量
-         if(tw < mw) extra				  += (mw - tw); else i++;
-         // 下一个没有获得焦点的窗口（不可视的窗口）
+         if(tw < mw) extra			 += (mw - tw); else i++;
          for(c = c->next; c && !ISVISIBLE(c); c = c->next);
       }
-      // 重新计算窗口标题的平均宽度，mw
       if(i > 0) mw += extra / i;
    }
 
    x=m->titlebarbegin;
 
-   c                 = firstvis;
+   c = firstvis;
    while(x < m->titlebarend) {
       if(c) {
-         // w等于最小值（窗口标题宽度和窗口标题的平均宽度）
          w = MIN(TEXTW(c->name), mw);
-         // 如果鼠标在某个窗口标题上面点击，则聚焦这个窗口
          if (x < arg->i && x+w > arg->i) {
             focus(c);
             restack(selmon);
-            killclient(0);//关闭被选择的窗口
+            killclient(0);
             break;
          } else
-            // 重新给开始值
             x+=w;
-         // 寻找下一个可视窗口
+
          for(c = c->next; c && !ISVISIBLE(c); c = c->next);
       }
-      else {// 如果找不到可视窗口，则终止while循环
+      else {
          break;
       }
    }
@@ -3205,7 +3204,7 @@ void launcher(const Arg *arg){
       //if((occ & 1 << i ) || (selmon->tagset[selmon->seltags] & 1 << i)) // 自动隐藏没有内容的tag
       tcount = tagcount;
    }
-   else // 非自动隐藏
+   else
       tcount = LENGTH(tags);
 
    for(i = 0; i < tcount; i++) x+= TEXTW(tags[i]);
