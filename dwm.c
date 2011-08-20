@@ -153,6 +153,11 @@ typedef struct {
    void (*arrange)(Monitor *);
 } Layout;
 
+typedef struct
+{
+   int x, y, w, h;
+} Edge;
+
 struct Monitor {
    char				 ltsymbol[16];
    float				 mfact;
@@ -173,6 +178,8 @@ struct Monitor {
    Window				 barwin;
    const Layout		*lt[2];
    int					 primary;
+   Edge              *margin;
+   Edge              *edge;
 
    int titlebarbegin;
    int titlebarend;
@@ -187,11 +194,6 @@ typedef struct {
    Bool isfloating, iswidget, isbelow, iszombie, issticky;
    int monitor;
 } Rule;
-
-typedef struct
-{
-   int x, y, w, h;
-} Edge;
 
 /* System tray */
 typedef struct Systray	 Systray;
@@ -775,6 +777,7 @@ createmon(void) {
    m->mfact = mfact;
    m->showbar = showbar;
    m->topbar = topbar;
+   m->primary = 0;
    m->lt[0] = &layouts[0];
    m->lt[1] = &layouts[1 % LENGTH(layouts)];
    strncpy(m->ltsymbol, layouts[0].symbol, sizeof m->ltsymbol);
@@ -1170,9 +1173,6 @@ enternotify(XEvent *e) {
       drawbar(selmon);
    }
 
-   /* only click focus kthxbye */
-   return;
-
    if((c = wintoclient(ev->window)))
       focus(c);
    else
@@ -1191,7 +1191,7 @@ expose(XEvent *e) {
 void
 focus(Client *c) {
    if(!c || !ISVISIBLE(c) || c->iszombie)
-      for(c = selmon->stack; c && !ISVISIBLE(c) && !c->iszombie; c = c->snext);
+      for(c = selmon->stack; c && !ISVISIBLE(c) && c->iszombie; c = c->snext);
    /* was if(selmon->sel) */
    if(selmon->sel && selmon->sel != c)
       unfocus(selmon->sel, False);
@@ -1821,8 +1821,6 @@ clientmessage(XEvent *e) {
          if(cme->data.l[1] == XEMBED_EMBEDDED_NOTIFY){
             systray_add(cme->data.l[2]);
             systray_update();
-            //注意刷新一下状态栏信息（显示dwm版本的东东，虽然用其他的信息显示代替它）
-
             updatestatus();
          }
       }
@@ -2052,12 +2050,11 @@ setup(void) {
    initfont(font);
    sw = DisplayWidth(dpy, screen);
    sh = DisplayHeight(dpy, screen);
-   //面板的高度在config.h中有定义：status_height
    int fh = dc.font.height;
    if(fh < status_height)
       bh = dc.h = status_height;
    else
-      bh = dc.h = fh + 2; //面板的最小高度是字体的高度（保证字体正常显示而不被掩盖）
+      bh = dc.h = fh + 2;
    updategeom();
    /* init atoms */
    wmatom[WMProtocols] = XInternAtom(dpy, "WM_PROTOCOLS", False);
@@ -2241,20 +2238,18 @@ tile(Monitor *m) {
    }
 }
 
-/*隐藏状态棒*/
 void
 togglebar(const Arg *arg) {
    selmon->showbar = !selmon->showbar;
    updatebarpos(selmon);
    XMoveResizeWindow(dpy, selmon->barwin, selmon->wx, selmon->by, selmon->ww, bh);
    arrange(selmon);
-   //隐藏托盘图标，实现原理：使托盘窗口的y为-bh，这样就到屏幕外面了，bh：状态栏高度，sh：屏幕高度
-   if(systray_enable)
+
+   if(systray_enable && selmon->primary)
    {
       XWindowChanges wc;
       if(!selmon->showbar)
       {
-
          wc.y = -bh;
          XConfigureWindow(dpy, traywin, CWY, &wc);
       }
@@ -2374,16 +2369,24 @@ updatebars(void) {
 
 void
 updatebarpos(Monitor *m) {
+   /* original */
    m->by = m->oy;
    m->wy = m->oy;
    m->wh = m->oh;
+
+   /* get right stuff */
    if(m->showbar) {
       m->wh -= bh;
       m->by = m->topbar ? m->wy : m->wy + m->wh;
       m->wy = m->topbar ? m->wy + bh : m->wy;
    }
    else
+   {
       m->by = -bh;
+#if BOTTOM_MARGIN_IS_BAR
+      m->wh = m->oh + m->margin->h + 1; // Bottom margin too, assume you have bar. Windows go over
+#endif
+   }
 }
 
 Bool
@@ -2416,6 +2419,7 @@ updategeom(void) {
             else
                mons = createmon();
          }
+         if(m) m->primary = 1; // Last == primary for systray
          for(i = 0, m = mons; i < nn && m; m = m->next, i++)
             if(i >= n
                   || (unique[i].x_org != m->mx || unique[i].y_org != m->my
@@ -2427,6 +2431,8 @@ updategeom(void) {
                m->my = m->wy = m->oy = unique[i].y_org  + edges[i].y; m->wy += margins[i].y;
                m->mw = m->ww = m->ow = unique[i].width  + edges[i].w - margins[i].w;
                m->mh = m->wh = m->oh = unique[i].height + edges[i].h - margins[i].h;
+               m->margin = &margins[i];
+               m->edge   = &edges[i];
                updatebarpos(m);
             }
       }
@@ -2455,12 +2461,15 @@ updategeom(void) {
    {
       if(!mons)
          mons = createmon();
+         mons->primary = 1;
       if(mons->mw != sw || mons->mh != sh) {
          dirty = True;
          mons->wx = mons->mx = mons->ox = edges[0].x; mons->mx += margins[0].x;
          mons->wy = mons->my = mons->oy = edges[0].y; mons->my += margins[0].y;
          mons->mw = mons->ww = mons->ow = sw + edges[0].w - margins[0].w;
          mons->mh = mons->wh = mons->oh = sh + edges[0].h - margins[0].h;
+         mons->margin = &margins[0];
+         mons->edge   = &edges[0];
          updatebarpos(mons);
       }
    }

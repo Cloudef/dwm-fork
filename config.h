@@ -29,7 +29,7 @@ static const Bool topbar            = True;     /* False means bottom bar */
 
 static const Bool systray_enable = True;
 static const int systray_spacing = 2;
-static const int status_height = 0;
+static const int status_height   = 0;
 
 /* define monitor edge offsets, this is great if windows go out of screen */
 /* out of bounds, if array smaller than number of monitors */
@@ -41,10 +41,13 @@ static const Edge edges[] = {
 
 /* margins */
 static const Edge margins[] = {
-   /* X  Y  W  H */
+   /* X   Y   W   H */
    {  0,  2,  0,  9 }, // 1 NOTE: This adds the bottom bar cap
    {  0,  2,  0,  0 }, // 2 NOTE: Second monitor has no bar
 };
+
+/* All H margins get toggled on togglebar() function if this is 1 */
+#define BOTTOM_MARGIN_IS_BAR 1
 
 /* tagging */
 static const char *tags[] = { "東", "方", "P", "R", "O", "J", "E", "C", "T" };
