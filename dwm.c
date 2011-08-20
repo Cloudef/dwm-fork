@@ -1948,14 +1948,17 @@ run(void) {
    if(!XDG_CONFIG_HOME)
    {
       XDG_CONFIG_HOME = getenv("HOME");
-      snprintf( AUTOSTART, PATH_MAX, "%s/.config/dwm/autostart.sh", XDG_CONFIG_HOME );
+      snprintf( AUTOSTART, PATH_MAX, "%s/.config/dwm/autostart", XDG_CONFIG_HOME );
    }
    else
    {
-      snprintf( AUTOSTART, PATH_MAX, "%s/dwm/autostart.sh", XDG_CONFIG_HOME );
+      snprintf( AUTOSTART, PATH_MAX, "%s/dwm/autostart", XDG_CONFIG_HOME );
    }
    if(strlen(AUTOSTART))
-      shexec( AUTOSTART );
+   {
+      const char* spwncmd[] = { AUTOSTART, NULL };
+      spawn(&((Arg){ .v = spwncmd }));
+   }
 
    while(running && !XNextEvent(dpy, &ev)) {
       if(handler[ev.type])
