@@ -18,7 +18,7 @@ static const char colors[NUMCOLORS][ColLast][8] = {
 };
 
 static const unsigned int borderpx  = 1;        /* border pixel of windows */
-static const unsigned int snap      = 32;       /* snap pixel */
+static const unsigned int snap      = 1;        /* snap pixel */
 static const Bool showbar           = True;     /* False means no bar */
 static const Bool topbar            = True;     /* False means bottom bar */
 static const Bool clicktofocus      = True;
@@ -27,13 +27,14 @@ static const Bool systray_enable = True;
 static const int systray_spacing = 2;
 static const int status_height   = 0;
 
-#define PRIMARY_MONITOR 1
+/* which monitor systray appears */
+#define PRIMARY_MONITOR 0
 
 /* display edges, similar to margins expect
  * everything gets affected */
 static const Edge edges[] = {
    /* X   Y   W   H */
-   {  0,  0, -1, -1 }, // 1
+   {  0,  0,  0, -1 }, // 1
    {  0,  0,  4, -1 }, // 2
 };
 

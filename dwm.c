@@ -187,7 +187,7 @@ Window					 traywin;
 #define XEMBED_WINDOW_ACTIVATE        1
 #define XEMBED_WINDOW_DEACTIVATE      2
 
-unsigned int occ = 0;
+static unsigned int occ = 0;
 
 /* function declarations */
 static void	      applyrules(Client *c);
@@ -598,9 +598,9 @@ buttonpress(XEvent *e) {
    }
    else if((c = wintoclient(ev->window))) {
       click = ClkClientWin;
-      focus(c);
       selmon = c->mon;
-      if(c->isfloating) XRaiseWindow(dpy, c->win);
+      focus(c);
+      if(!c->isbelow) XRaiseWindow(dpy, c->win);
    }
 
    for(i = 0; i < LENGTH(buttons); i++)
@@ -1701,6 +1701,8 @@ movemouse(const Arg *arg) {
       return;
    if(!getrootptr(&x, &y))
       return;
+
+   if(!c->isbelow) XRaiseWindow(dpy, c->win);
    do {
       XMaskEvent(dpy, MOUSEMASK|ExposureMask|SubstructureRedirectMask, &ev);
       switch (ev.type) {
@@ -1728,6 +1730,11 @@ movemouse(const Arg *arg) {
             }
             if(!selmon->lt[selmon->sellt]->arrange || c->isfloating)
                resize(c, nx, ny, c->w, c->h, True);
+            if((m = ptrtomon(c->x + c->w / 2, c->y + c->h / 2)) != selmon) {
+               sendmon(c, m);
+               selmon = m;
+               if(!c->isbelow) XRaiseWindow(dpy, c->win);
+            }
             break;
       }
    } while(ev.type != ButtonRelease);
@@ -1735,10 +1742,10 @@ movemouse(const Arg *arg) {
    if((m = ptrtomon(c->x + c->w / 2, c->y + c->h / 2)) != selmon) {
       sendmon(c, m);
       selmon = m;
-      focus(NULL);
+      focus(c);
    }
-
-
+   if(!c->isbelow) XRaiseWindow(dpy, c->win);
+   restack(c->mon);
 }
 
 Client *
@@ -1892,6 +1899,8 @@ resizemouse(const Arg *arg) {
    if(XGrabPointer(dpy, root, False, MOUSEMASK, GrabModeAsync, GrabModeAsync,
             None, cursor[CurResize], CurrentTime) != GrabSuccess)
       return;
+
+   if(!c->isbelow) XRaiseWindow(dpy, c->win);
    XWarpPointer(dpy, None, c->win, 0, 0, 0, 0, c->w + c->bw - 1, c->h + c->bw - 1);
    do {
       XMaskEvent(dpy, MOUSEMASK|ExposureMask|SubstructureRedirectMask, &ev);
@@ -1913,6 +1922,11 @@ resizemouse(const Arg *arg) {
             }
             if(!selmon->lt[selmon->sellt]->arrange || c->isfloating)
                resize(c, c->x, c->y, nw, nh, True);
+            if((m = ptrtomon(c->x + c->w / 2, c->y + c->h / 2)) != selmon) {
+               sendmon(c, m);
+               selmon = m;
+               if(!c->isbelow) XRaiseWindow(dpy, c->win);
+            }
             break;
       }
    } while(ev.type != ButtonRelease);
@@ -1922,9 +1936,9 @@ resizemouse(const Arg *arg) {
    if((m = ptrtomon(c->x + c->w / 2, c->y + c->h / 2)) != selmon) {
       sendmon(c, m);
       selmon = m;
-      focus(NULL);
+      focus(c);
    }
-
+   if(!c->isbelow) XRaiseWindow(dpy, c->win);
 }
 
 void
@@ -1937,7 +1951,7 @@ restack(Monitor *m) {
    if(!m->sel)
       return;
    if(m->sel->isfloating || !m->lt[m->sellt]->arrange)
-      XRaiseWindow(dpy, m->sel->win);
+      if(!m->sel->isbelow) XRaiseWindow(dpy, m->sel->win);
    if(m->lt[m->sellt]->arrange) {
       wc.stack_mode = Below;
       wc.sibling = m->barwin;
@@ -1950,8 +1964,12 @@ restack(Monitor *m) {
    XSync(dpy, False);
    while(XCheckMaskEvent(dpy, EnterWindowMask, &ev));
 
+   /* always above && below */
    for(c = m->stack; c; c = c->snext)
-      if(c->isabove) XRaiseWindow(dpy,c->win);
+   {
+      if(c->isabove)      XRaiseWindow(dpy,c->win);
+      else if(c->isbelow) XLowerWindow(dpy, c->win);
+   }
 }
 
 void
@@ -2175,11 +2193,12 @@ void
 showhide(Client *c) {
    if(!c)
       return;
-   if(ISVISIBLE(c)) { /* show clients top down */
+
+   if(ISVISIBLE(c))
+   { /* show clients top down */
       XMoveWindow(dpy, c->win, c->x, c->y);
       if((!c->mon->lt[c->mon->sellt]->arrange || c->isfloating) && !c->isfullscreen)
          resize(c, c->x, c->y, c->w, c->h, False);
-      if(c->isabove) XRaiseWindow(dpy, c->win);
       showhide(c->snext);
    }
    else { /* hide clients bottom up */
@@ -2437,10 +2456,7 @@ updatebarpos(Monitor *m) {
       m->wh -= m->margin->h;
    }
    else
-   {
       m->by = -bh;
-      m->wh = m->oh;
-   }
 }
 
 Bool
@@ -3024,8 +3040,11 @@ systray_update(void) {
    int pos = sw;//blw;
    int pos_y;
 
+   /* get primary */
+   for(m = mons; m && !m->primary; m = m->next);
+
    if(topbar)
-      pos_y = 0;
+      pos_y = m->my;
    else
       pos_y = sh - bh;
 
