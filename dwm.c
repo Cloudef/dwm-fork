@@ -380,7 +380,8 @@ applyrules(Client *c) {
    XClassHint ch = { 0 };
 
    /* rule matching */
-   c->isfloating = c->tags = 0;
+   c->isfloating   = c->tags = 0;
+   c->isfullscreen = False;
    if(XGetClassHint(dpy, c->win, &ch)) {
       class = ch.res_class ? ch.res_class : broken;
       instance = ch.res_name ? ch.res_name : broken;
@@ -1556,7 +1557,7 @@ manage(Window w, XWindowAttributes *wa) {
    c->win = w;
    updatetitle(c);
    if(XGetTransientForHint(dpy, w, &trans) && (t = wintoclient(trans))) {
-      c->mon = t->mon;
+      c->mon  = t->mon;
       c->tags = t->tags;
    }
    else {
@@ -1610,18 +1611,18 @@ manage(Window w, XWindowAttributes *wa) {
    /* some windows require this */
    setclientstate(c, NormalState);
    XMoveResizeWindow(dpy, c->win, c->x + 2 * sw, c->y, c->w, c->h);
-   if(!c->iszombie)
-   {
-      if (c->mon == selmon)
-         unfocus(selmon->sel, False);
-      c->mon->sel = c;
-   }
-
-   if(!c->iswidget)
-      arrange(c->mon);
 
    XMapWindow(dpy, c->win);
-   focus(NULL);
+
+   if(!c->iszombie)
+   {
+      if(c->mon == selmon)
+         if(selmon->sel)
+            if(!selmon->sel->isfullscreen)
+            {  unfocus(selmon->sel, False);
+               focus(c); }
+   }
+   arrange(c->mon);
 }
 
 void
@@ -3031,6 +3032,7 @@ systray_update(void) {
 
    /* get primary */
    for(m = mons; m && !m->primary; m = m->next);
+   pos = m->mw;
 
    if(topbar)
       pos_y = m->my;
