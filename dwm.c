@@ -195,6 +195,7 @@ static Bool	      applysizehints(Client *c, int *x, int *y, int *w, int *h, Bool
 static void	      arrange(Monitor *m);
 static void	      arrangemon(Monitor *m);
 static void	      attach(Client *c);
+static void	      attachend(Client *c);
 static void	      attachstack(Client *c);
 static void	      buttonpress(XEvent *e);
 static void	      checkotherwm(void);
@@ -295,6 +296,7 @@ static int	      xerror(Display *dpy, XErrorEvent *ee);
 static int	      xerrordummy(Display *dpy, XErrorEvent *ee);
 static int	      xerrorstart(Display *dpy, XErrorEvent *ee);
 static void	      zoom(const Arg *arg);
+static void	      cyclezoom(const Arg *arg);
 
 static void	      view_next_tag(const Arg *);
 static void	      view_prev_tag(const Arg *);
@@ -501,6 +503,22 @@ void
 attach(Client *c) {
    c->next = c->mon->clients;
    c->mon->clients = c;
+}
+
+void
+attachend(Client *c) {
+   Client *e = c->mon->clients;
+   if(!e)
+   {
+      attach(c);
+      return;
+   }
+
+   while(e->next)
+      e = e->next;
+
+   e->next = c;
+   c->next = NULL;
 }
 
 void
@@ -2682,6 +2700,24 @@ int
 xerrorstart(Display *dpy, XErrorEvent *ee) {
    otherwm = True;
    return -1;
+}
+
+void
+cyclezoom(const Arg *arg)
+{
+   Client *c = selmon->clients;
+   if(!c)
+      return;
+
+   if(!selmon->lt[selmon->sellt]->arrange
+         || selmon->lt[selmon->sellt]->arrange == monocle
+         || (selmon->sel && selmon->sel->isfloating))
+      return;
+
+   detach(c);
+   if(c->next) focus(c->next);
+   attachend(c);
+   arrange(c->mon);
 }
 
 void

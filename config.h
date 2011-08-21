@@ -145,7 +145,7 @@ static Key keys[] = {
 	{ MODKEY|ShiftMask,             XK_period, tagmon,         {.i = +1 } },
    { MODKEY,                       XK_KP_End,   nextlayout,     {0} },
    { MODKEY,                       XK_KP_Down,  prevlayout,     {0} },
- 	{ MODKEY,                       XK_KP_Insert,zoom,           {0} },
+ 	{ MODKEY,                       XK_KP_Insert,cyclezoom,      {0} },
   	{ MODKEY,                       XK_KP_Delete,togglefloating,{0} },
    { MODKEY,                       XK_F12,    togglelayout,   {.v = &layouts[5]} },
 	TAGKEYS(                        XK_1,                      0)
