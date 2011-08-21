@@ -1518,9 +1518,6 @@ killclient(const Arg *arg) {
 
    if(!selmon->sel)
       return;
-   if(selmon->sel->isfullscreen)
-      togglebar(&((Arg){ .i = 1 }));
-
    if(isprotodel(selmon->sel)) {
       ev.type = ClientMessage;
       ev.xclient.window = selmon->sel->win;
@@ -1939,8 +1936,8 @@ restack(Monitor *m) {
    drawbar(m);
    if(!m->sel)
       return;
-   //if(m->sel->isfloating || !m->lt[m->sellt]->arrange)
-      //if(!m->sel->isbelow) XRaiseWindow(dpy, m->sel->win);
+   if(m->sel->isfloating || !m->lt[m->sellt]->arrange)
+      if(!m->sel->isbelow) XRaiseWindow(dpy, m->sel->win);
    if(m->lt[m->sellt]->arrange) {
       wc.stack_mode = Below;
       wc.sibling = m->barwin;
@@ -2377,6 +2374,9 @@ void
 unmanage(Client *c, Bool destroyed) {
    Monitor *m = c->mon;
    XWindowChanges wc;
+
+   if(selmon->sel->isfullscreen)
+      togglebar(&((Arg){ .i = 1 }));
 
    /* The server grab construct avoids race conditions. */
    detach(c);
