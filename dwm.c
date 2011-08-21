@@ -600,13 +600,15 @@ buttonpress(XEvent *e) {
       click = ClkClientWin;
       selmon = c->mon;
       focus(c);
-      if(!c->isbelow) XRaiseWindow(dpy, c->win);
    }
 
    for(i = 0; i < LENGTH(buttons); i++)
       if(click                              == buttons[i].click && buttons[i].func && buttons[i].button == ev->button
             && CLEANMASK(buttons[i].mask)   == CLEANMASK(ev->state))
          buttons[i].func((click             == ClkTagBar || click == ClkWinTitle || click == ClkClientWin) && buttons[i].arg.i == 0 ? &arg : &buttons[i].arg);
+
+   if(click == ClkClientWin)
+      if(!selmon->sel->isbelow && selmon->sel->isfloating) XRaiseWindow(dpy, selmon->sel->win);
 }
 
 void
@@ -1691,9 +1693,8 @@ movemouse(const Arg *arg) {
 
    if(!(c = selmon->sel))
       return;
-   if(c->iszombie)
+   if(c->iszombie || c->isfullscreen)
       return;
-   restack(selmon);
    ocx = c->x;
    ocy = c->y;
    if(XGrabPointer(dpy, root, False, MOUSEMASK, GrabModeAsync, GrabModeAsync,
@@ -1702,6 +1703,10 @@ movemouse(const Arg *arg) {
    if(!getrootptr(&x, &y))
       return;
 
+   c->isfloating = True;
+   resize(c, c->x, c->y, c->w, c->h, False);
+   arrange(c->mon);
+   focus(c);
    if(!c->isbelow) XRaiseWindow(dpy, c->win);
    do {
       XMaskEvent(dpy, MOUSEMASK|ExposureMask|SubstructureRedirectMask, &ev);
@@ -1714,25 +1719,12 @@ movemouse(const Arg *arg) {
          case MotionNotify:
             nx = ocx + (ev.xmotion.x - x);
             ny = ocy + (ev.xmotion.y - y);
-            if(snap && nx >= selmon->wx && nx <= selmon->wx + selmon->ww
-                  && ny >= selmon->wy && ny <= selmon->wy + selmon->wh) {
-               if(abs(selmon->wx - nx) < snap)
-                  nx = selmon->wx;
-               else if(abs((selmon->wx + selmon->ww) - (nx + WIDTH(c))) < snap)
-                  nx = selmon->wx + selmon->ww - WIDTH(c);
-               if(abs(selmon->wy - ny) < snap)
-                  ny = selmon->wy;
-               else if(abs((selmon->wy + selmon->wh) - (ny + HEIGHT(c))) < snap)
-                  ny = selmon->wy + selmon->wh - HEIGHT(c);
-               if(!c->isfloating && selmon->lt[selmon->sellt]->arrange
-                     && (abs(nx - c->x) > snap || abs(ny - c->y) > snap))
-                  togglefloating(NULL);
-            }
             if(!selmon->lt[selmon->sellt]->arrange || c->isfloating)
                resize(c, nx, ny, c->w, c->h, True);
             if((m = ptrtomon(c->x + c->w / 2, c->y + c->h / 2)) != selmon) {
                sendmon(c, m);
                selmon = m;
+               focus(c);
                if(!c->isbelow) XRaiseWindow(dpy, c->win);
             }
             break;
@@ -1745,7 +1737,7 @@ movemouse(const Arg *arg) {
       focus(c);
    }
    if(!c->isbelow) XRaiseWindow(dpy, c->win);
-   restack(c->mon);
+   arrange(c->mon);
 }
 
 Client *
@@ -1891,15 +1883,18 @@ resizemouse(const Arg *arg) {
 
    if(!(c = selmon->sel))
       return;
-   if(c->iszombie)
+   if(c->iszombie || c->isfullscreen)
       return;
-   restack(selmon);
    ocx = c->x;
    ocy = c->y;
    if(XGrabPointer(dpy, root, False, MOUSEMASK, GrabModeAsync, GrabModeAsync,
             None, cursor[CurResize], CurrentTime) != GrabSuccess)
       return;
 
+   c->isfloating = True;
+   resize(c, c->x, c->y, c->w, c->h, False);
+   arrange(c->mon);
+   focus(c);
    if(!c->isbelow) XRaiseWindow(dpy, c->win);
    XWarpPointer(dpy, None, c->win, 0, 0, 0, 0, c->w + c->bw - 1, c->h + c->bw - 1);
    do {
@@ -1913,18 +1908,12 @@ resizemouse(const Arg *arg) {
          case MotionNotify:
             nw = MAX(ev.xmotion.x - ocx - 2 * c->bw + 1, 1);
             nh = MAX(ev.xmotion.y - ocy - 2 * c->bw + 1, 1);
-            if(snap && nw >= selmon->wx && nw <= selmon->wx + selmon->ww
-                  && nh >= selmon->wy && nh <= selmon->wy + selmon->wh)
-            {
-               if(!c->isfloating && selmon->lt[selmon->sellt]->arrange
-                     && (abs(nw - c->w) > snap || abs(nh - c->h) > snap))
-                  togglefloating(NULL);
-            }
             if(!selmon->lt[selmon->sellt]->arrange || c->isfloating)
                resize(c, c->x, c->y, nw, nh, True);
             if((m = ptrtomon(c->x + c->w / 2, c->y + c->h / 2)) != selmon) {
                sendmon(c, m);
                selmon = m;
+               focus(c);
                if(!c->isbelow) XRaiseWindow(dpy, c->win);
             }
             break;
@@ -1950,8 +1939,8 @@ restack(Monitor *m) {
    drawbar(m);
    if(!m->sel)
       return;
-   if(m->sel->isfloating || !m->lt[m->sellt]->arrange)
-      if(!m->sel->isbelow) XRaiseWindow(dpy, m->sel->win);
+   //if(m->sel->isfloating || !m->lt[m->sellt]->arrange)
+      //if(!m->sel->isbelow) XRaiseWindow(dpy, m->sel->win);
    if(m->lt[m->sellt]->arrange) {
       wc.stack_mode = Below;
       wc.sibling = m->barwin;
@@ -3001,7 +2990,7 @@ systray_freeicons(void) {
 
    XSetSelectionOwner(dpy, netatom[NetSystemTray], None, CurrentTime);
    XDestroyWindow(dpy, traywin);
-   XSync(dpy, 0);
+   XSync(dpy, False);
 
    return;
 }
@@ -3067,7 +3056,7 @@ systray_update(void) {
    XMoveResizeWindow(dpy, traywin, pos, pos_y, x, bh);
 
    XMapRaised(dpy, traywin);
-   XSync(dpy, 0);
+   XSync(dpy, False);
 
    return;
 }
