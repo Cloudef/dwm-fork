@@ -255,7 +255,7 @@ static void	      resize(Client *c, int x, int y, int w, int h, Bool interact);
 static void	      resizeclient(Client *c, int x, int y, int w, int h);
 static void	      resizemouse(const Arg *arg);
 static void	      restack(Monitor *m);
-static void	      run(void);
+static void	      run(Bool);
 static void	      scan(void);
 static void	      sendmon(Client *c, Monitor *m);
 static void	      setclientstate(Client *c, long state);
@@ -1937,7 +1937,7 @@ restack(Monitor *m) {
 }
 
 void
-run(void) {
+run(Bool autostart) {
    XEvent ev;
    char *XDG_CONFIG_HOME;
    char AUTOSTART[PATH_MAX];
@@ -1945,20 +1945,23 @@ run(void) {
    /* main event loop */
    XSync(dpy, False);
 
-   XDG_CONFIG_HOME = getenv("XDG_CONFIG_HOME");
-   if(!XDG_CONFIG_HOME)
+   if(autostart)
    {
-      XDG_CONFIG_HOME = getenv("HOME");
-      snprintf( AUTOSTART, PATH_MAX, "%s/.config/dwm/autostart", XDG_CONFIG_HOME );
-   }
-   else
-   {
-      snprintf( AUTOSTART, PATH_MAX, "%s/dwm/autostart", XDG_CONFIG_HOME );
-   }
-   if(strlen(AUTOSTART))
-   {
-      const char* spwncmd[] = { AUTOSTART, NULL };
-      spawn(&((Arg){ .v = spwncmd }));
+      XDG_CONFIG_HOME = getenv("XDG_CONFIG_HOME");
+      if(!XDG_CONFIG_HOME)
+      {
+         XDG_CONFIG_HOME = getenv("HOME");
+         snprintf( AUTOSTART, PATH_MAX, "%s/.config/dwm/autostart", XDG_CONFIG_HOME );
+      }
+      else
+      {
+         snprintf( AUTOSTART, PATH_MAX, "%s/dwm/autostart", XDG_CONFIG_HOME );
+      }
+      if(strlen(AUTOSTART))
+      {
+         const char* spwncmd[] = { AUTOSTART, NULL };
+         spawn(&((Arg){ .v = spwncmd }));
+      }
    }
 
    while(running && !XNextEvent(dpy, &ev)) {
@@ -2700,12 +2703,17 @@ zoom(const Arg *arg) {
 
 int
 main(int argc, char *argv[]) {
+   Bool autostart = True;
    setlocale(LC_NUMERIC, "en_US.utf8");
-
-   if(argc == 2 && !strcmp("-v", argv[1]))
-      die("dwm-"VERSION", © 2006-2010 dwm engineers, see LICENSE for details\n");
+   if(argc == 2)
+   {
+      if(!strcmp("-v", argv[1]))
+         die("dwm-fork\n");
+      else if(!strcmp("-r", argv[1]))
+         autostart = False;
+   }
    else if(argc != 1)
-      die("usage: dwm [-v]\n");
+      die("usage: dwm [-v][-r]\n");
    if(!setlocale(LC_CTYPE, "") || !XSupportsLocale())
       fputs("warning: no locale support\n", stderr);
    if(!(dpy = XOpenDisplay(NULL)))
@@ -2713,7 +2721,7 @@ main(int argc, char *argv[]) {
    checkotherwm();
    setup();
    scan();
-   run();
+   run(autostart);
    cleanup();
    XCloseDisplay(dpy);
    return 0;
@@ -2758,11 +2766,10 @@ view_prev_tag(const Arg *arg)
    void
 restart(const Arg *arg)
 {
-
    if (arg->v) {
       execvp(((char **)arg->v)[0], (char **)arg->v);
    } else {
-      execlp("dwm", "dwm", NULL);
+      execlp("dwm", "dwm", "-r", NULL);
    }
 
 }

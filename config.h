@@ -40,7 +40,7 @@ static const Edge edges[] = {
 /* window area margins */
 static const Edge margins[] = {
    /* X   Y   W   H */
-   {  0,  0,  0,  9 }, // 1 NOTE: This adds the bottom bar cap
+   {  0,  0,  0, 10 }, // 1 NOTE: This adds the bottom bar cap
    {  0,  0,  0,  0 }, // 2 NOTE: Second monitor has no bar
 };
 
