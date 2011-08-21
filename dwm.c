@@ -1498,6 +1498,9 @@ killclient(const Arg *arg) {
 
    if(!selmon->sel)
       return;
+   if(selmon->sel->isfullscreen)
+      togglebar(&((Arg){ .i = 1 }));
+
    if(isprotodel(selmon->sel)) {
       ev.type = ClientMessage;
       ev.xclient.window = selmon->sel->win;

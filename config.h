@@ -33,14 +33,14 @@ static const int status_height   = 0;
  * everything gets affected */
 static const Edge edges[] = {
    /* X   Y   W   H */
-   {  0,  0,  0,  0 }, // 1
+   {  0,  0, -1, -1 }, // 1
    {  0,  0,  4, -1 }, // 2
 };
 
 /* window area margins */
 static const Edge margins[] = {
    /* X   Y   W   H */
-   {  0,  0,  0, 10 }, // 1 NOTE: This adds the bottom bar cap
+   {  0,  0,  0,  9 }, // 1 NOTE: This adds the bottom bar cap
    {  0,  0,  0,  0 }, // 2 NOTE: Second monitor has no bar
 };
 
@@ -58,7 +58,7 @@ Bool autohide             = False;
 /*             floating,widget,  below.   above,   zombie,  sticky */
 #define NORMAL False,   False,   False,   False,   False,   False
 #define FLOAT  True,    False,   False,   False,   False,   False
-#define WIDGET True,    True,    False,   False,   False,   True
+#define WIDGET True,    True,    False,   True,    False,   True
 #define CONKY  True,    True,    True,    False,   True,    True
 #define URXVTQ True,    False,   False,   True,    False,   True
 
@@ -67,7 +67,7 @@ static const Rule rules[] = {
    { "Gimp",     NULL,       NULL,       0,            FLOAT,         -1 },
    { "URxvt",    NULL,       "URxvtq",   0,            URXVTQ,         0 },
    { "Oblogout", NULL,       NULL,       0,            URXVTQ,         0 },
-   { "MaCoPiX",  NULL,       NULL,       0,            WIDGET,        -1 },
+   { "MaCoPiX",  NULL,       NULL,       0,            WIDGET,         1 },
    { "Kupfer.py",NULL,       NULL,       0,            WIDGET,        -1 },
    { "dzen",     NULL,       NULL,       0,            CONKY,         -1 },
    { "Conky",    NULL,       NULL,       0,            CONKY,          1 },
