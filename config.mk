@@ -26,7 +26,7 @@ LIBS = -L/usr/lib -lc -L${X11LIB} -lX11 ${XINERAMALIBS} ${XFTLIBS}
 
 # flags
 #CFLAGS = -std=c99 -pedantic -Wall -march=core2 -mtune=core2 -O2 ${INCS} ${DEFINES}
-CFLAGS = -g -std=c99 -pedantic -Wall -O0 ${INCS} ${DEFINES}
+CFLAGS = -g -std=c99 -pedantic -Wall -O0 ${INCS} ${DEFINES} ${XINERAMAFLAGS} ${XFTFLAGS}
 #LDFLAGS = -s ${LIBS}
 LDFLAGS = -g ${LIBS}
 

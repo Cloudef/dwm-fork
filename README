@@ -2,3 +2,12 @@ DWM(-plus) fork, with some patches, and lots of modified code.
 Documentation later
 
 Autostart goes in $HOME/.config/dwm/autostart
+
+Debugging dual head setup:
+   Xephyr :1 +xinerama -screen 600×400 &
+   Xephyr :2 +xinerama -screen 600×400 &
+   Xdmx :3 -display localhost:1 -display localhost:2 +xinerama
+
+   Spawn on :3
+
+

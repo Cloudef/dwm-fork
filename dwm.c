@@ -1663,11 +1663,9 @@ manage(Window w, XWindowAttributes *wa) {
 
    if(!c->iszombie)
    {
-      if(c->mon == selmon)
-         if(selmon->sel)
-            if(!selmon->sel->isfullscreen)
-            {  unfocus(selmon->sel, False);
-               focus(c); }
+      if(selmon)
+         if(selmon->sel && !selmon->sel->isfullscreen)
+               focus(c);
    }
    arrange(c->mon);
 }
@@ -2446,8 +2444,8 @@ unmanage(Client *c, Bool destroyed) {
    Monitor *m = c->mon;
    XWindowChanges wc;
 
-   if(selmon->sel->isfullscreen)
-      togglebar(&((Arg){ .i = 1 }));
+   if(selmon->sel && selmon->sel->isfullscreen)
+         togglebar(&((Arg){ .i = 1 }));
 
    /* The server grab construct avoids race conditions. */
    detach(c);
@@ -2688,7 +2686,7 @@ updatetitle(Client *c) {
 void
 updatestatus(void) {
    if(!gettextprop(root, XA_WM_NAME, stext, sizeof(stext)))
-      strcpy(stext, "");
+      strcpy(stext, VERSION);
    drawbar(selmon);
 }
 
