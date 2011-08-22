@@ -572,7 +572,7 @@ void
 buttonpress(XEvent *e) {
    unsigned int i, x, click;
    Arg arg = {0};
-   Client *c;
+   Client *c = NULL;
    Monitor *m;
    XButtonPressedEvent *ev = &e->xbutton;
 
@@ -1222,6 +1222,9 @@ void
 motionnotify(XEvent *e) {
    Monitor *m;
    XMotionEvent *ev = &e->xmotion;
+
+   if(!autofocusmonitor)
+      return;
 
    if((m = ptrtomon(ev->x_root, ev->y_root)) != selmon)
       if(m) selmon = m;
@@ -2005,8 +2008,7 @@ restack(Monitor *m) {
          }
    }
    while(XCheckMaskEvent(dpy, EnterWindowMask, &ev));
-   if(autofocusmonitor)
-      while(XCheckMaskEvent(dpy, PointerMotionMask, &ev));
+   while(XCheckMaskEvent(dpy, PointerMotionMask, &ev));
 
    /* always above && below */
    for(c = m->stack; c; c = c->snext)
@@ -2226,9 +2228,15 @@ setup(void) {
          PropModeReplace, (unsigned char *) netatom, NetLast);
    /* select for events */
    wa.cursor     = cursor[CurNormal];
-   wa.event_mask = SubstructureRedirectMask|SubstructureNotifyMask|ButtonPressMask
-      |EnterWindowMask|LeaveWindowMask|StructureNotifyMask
-      |PropertyChangeMask|PointerMotionMask;
+   if(autofocusmonitor)
+      wa.event_mask = SubstructureRedirectMask|SubstructureNotifyMask|ButtonPressMask
+         |EnterWindowMask|LeaveWindowMask|StructureNotifyMask
+         |PropertyChangeMask|PointerMotionMask;
+   else
+      wa.event_mask = SubstructureRedirectMask|SubstructureNotifyMask|ButtonPressMask
+         |EnterWindowMask|LeaveWindowMask|StructureNotifyMask
+         |PropertyChangeMask;
+
    XChangeWindowAttributes(dpy, root, CWEventMask|CWCursor, &wa);
    XSelectInput(dpy, root, wa.event_mask);
    grabkeys();
