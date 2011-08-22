@@ -1,5 +1,6 @@
 # dwm version
-VERSION = fork
+VERSION = `git rev-parse HEAD`
+COMMIT  = `git log --format=%B -n 1 HEAD`
 
 # Customize below to fit your system
 
@@ -24,15 +25,10 @@ INCS = -I. -I/usr/include -I${X11INC} ${XFTINC}
 LIBS = -L/usr/lib -lc -L${X11LIB} -lX11 ${XINERAMALIBS} ${XFTLIBS}
 
 # flags
-CPPFLAGS = -DVERSION=\"${VERSION}\" ${XINERAMAFLAGS} ${XFTFLAGS}
-#CFLAGS = -std=c99 -pedantic -Wall -march=core2 -mtune=core2 -O2 ${INCS} ${CPPFLAGS}
-CFLAGS = -g -std=c99 -pedantic -Wall -O0 ${INCS} ${CPPFLAGS}
+#CFLAGS = -std=c99 -pedantic -Wall -march=core2 -mtune=core2 -O2 ${INCS} ${DEFINES}
+CFLAGS = -g -std=c99 -pedantic -Wall -O0 ${INCS} ${DEFINES}
 #LDFLAGS = -s ${LIBS}
 LDFLAGS = -g ${LIBS}
-
-# Solaris
-#CFLAGS = -fast ${INCS} -DVERSION=\"${VERSION}\"
-#LDFLAGS = ${LIBS}
 
 # compiler and linker
 CC = cc

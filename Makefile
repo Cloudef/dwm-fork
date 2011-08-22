@@ -6,13 +6,21 @@ include config.mk
 SRC = dwm.c
 OBJ = ${SRC:.c=.o}
 
-all: options dwm
+all: options version dwm
 
 options:
 	@echo dwm build options:
 	@echo "CFLAGS   = ${CFLAGS}"
 	@echo "LDFLAGS  = ${LDFLAGS}"
 	@echo "CC       = ${CC}"
+
+version:
+	@echo version.h
+	@echo "#ifndef VERSION_H" &> version.h
+	@echo "#define VERSION_H" >> version.h
+	@echo "#define VERSION \"${VERSION}\"" >> version.h
+	@echo "#define COMMIT  \"${COMMIT}\""  >> version.h
+	@echo "#endif /* VERSION_H */" >> version.h
 
 .c.o:
 	@echo CC $<

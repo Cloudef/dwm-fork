@@ -369,6 +369,7 @@ Bool sel_win = False;
 Bool istitledraw = False;
 
 /* configuration, allows nested code to access above variables */
+#include "version.h"
 #include "config.h"
 
 /* compile-time check if all tags fit into an unsigned int bit array. */
@@ -2821,7 +2822,7 @@ main(int argc, char *argv[]) {
    if(argc == 2)
    {
       if(!strcmp("-v", argv[1]))
-         die("dwm-fork\n");
+         die("dwm-fork - "VERSION"\n"COMMIT"\n");
       else if(!strcmp("-r", argv[1]))
          autostart = False;
    }
