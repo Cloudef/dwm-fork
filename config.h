@@ -20,7 +20,8 @@ static const char colors[NUMCOLORS][ColLast][8] = {
 static const unsigned int borderpx  = 1;        /* border pixel of windows */
 static const Bool showbar           = True;     /* False means no bar */
 static const Bool topbar            = True;     /* False means bottom bar */
-static const Bool clicktofocus      = True;
+static const Bool clicktofocus      = True;     /* Click to focus windows */
+static const Bool autofocusmonitor  = True;     /* Auto focus monitors */
 
 static const Bool systray_enable = True;
 static const int systray_spacing = 2;
@@ -33,7 +34,7 @@ static const int status_height   = 0;
  * everything gets affected */
 static const Edge edges[] = {
    /* X   Y   W   H */
-   {  0,  0,  0, -1 }, // 1
+   {  0,  0, -1, -1 }, // 1
    {  0,  0,  4, -1 }, // 2
 };
 
@@ -80,7 +81,7 @@ static const Rule rules[] = {
 
 /* layout(s) */
 static const float mfact      = 0.55; /* factor of master area size [0.05..0.95] */
-static const Bool resizehints = False; /* True means respect size hints in tiled resizals */
+static const Bool resizehints = True; /* True means respect size hints in tiled resizals */
 
 /* num of masters */
 static const int nmaster = 2;
@@ -147,6 +148,10 @@ static Key keys[] = {
    { MODKEY,                       XK_KP_Down,  prevlayout,     {0} },
  	{ MODKEY,                       XK_KP_Insert,cyclezoom,      {0} },
   	{ MODKEY,                       XK_KP_Delete,togglefloating,{0} },
+	{ MODKEY,                       XK_KP_Home,  setmfact,     {.f = -0.05} },
+	{ MODKEY,                       XK_KP_Up,    setmfact,     {.f = +0.05} },
+ 	{ MODKEY,                       XK_KP_Right, focusstack,   {.i = +1 } },
+	{ MODKEY,                       XK_KP_5,     focusstack,   { .i = -1 } },
    { MODKEY,                       XK_F12,    togglelayout,   {.v = &layouts[5]} },
 	TAGKEYS(                        XK_1,                      0)
 	TAGKEYS(                        XK_2,                      1)
@@ -172,10 +177,8 @@ static Button buttons[] = {
    { ClkWinTitle,          0,              Button3,        closeonclick,   {0} },
 	{ ClkStatusText,        0,              Button2,        spawn,          {.v = termcmd } },
 	{ ClkClientWin,         ALTKEY,         Button1,        movemouse,      {0} },
-	{ ClkClientWin,         ALTKEY,         Button2,        togglefloating, {0} },
- 	{ ClkClientWin,         MODKEY,         Button2,        togglefloating, {0} },
-	{ ClkClientWin,         ALTKEY,         Button3,        resizemouse,    {0} },
- 	{ ClkClientWin,         MODKEY,         Button3,        zoom,           {0} },
+	{ ClkClientWin,         ALTKEY,         Button2,        zoom,           {0} },
+ 	{ ClkClientWin,         MODKEY,         Button2,        zoom,           {0} },
 	{ ClkTagBar,            0,              Button1,        view,           {0} },
 	{ ClkTagBar,            0,              Button3,        toggleview,     {0} },
 	{ ClkTagBar,            ALTKEY,         Button1,        tag,            {0} },

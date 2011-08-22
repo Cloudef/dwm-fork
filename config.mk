@@ -1,5 +1,5 @@
 # dwm version
-VERSION = 20110502
+VERSION = fork
 
 # Customize below to fit your system
 
