@@ -1214,7 +1214,7 @@ enternotify(XEvent *e) {
    else
    {
        if((m = wintomon(ev->window)) && m != selmon)
-          selmon = m;
+       { selmon = m; drawbars(); }
    }
 
    if(!clicktofocus)
@@ -1233,7 +1233,7 @@ motionnotify(XEvent *e) {
       return;
 
    if((m = ptrtomon(ev->x_root, ev->y_root)) != selmon)
-      if(m) selmon = m;
+      if(m) { selmon = m; drawbars(); }
 }
 
 void
@@ -3230,10 +3230,10 @@ focusonclick(const Arg *arg) {
    Monitor *m = selmon;
    Client *c, *firstvis;
 
-   for(c = m->clients; c && !ISVISIBLE(c); c = c->next);
-   firstvis								  = c;
+   for(c = m->clients; c && (!ISVISIBLE(c) || c->iswidget); c = c->next);
+   firstvis	= c;
    for(c = m->clients; c; c = c->next)
-      if (ISVISIBLE(c))
+      if(ISVISIBLE(c) && !c->iswidget)
          n++;
 
    if(n > 0) {
@@ -3242,7 +3242,7 @@ focusonclick(const Arg *arg) {
       while(c) {
          tw								  = TEXTW(c->name);
          if(tw < mw) extra				  += (mw - tw); else i++;
-         for(c = c->next; c && !ISVISIBLE(c); c = c->next);
+         for(c = c->next; c && (!ISVISIBLE(c) || c->iswidget); c = c->next);
       }
       if(i > 0) mw += extra / i;
    }
@@ -3261,7 +3261,7 @@ focusonclick(const Arg *arg) {
          } else
             x+=w;
 
-         for(c = c->next; c && !ISVISIBLE(c); c = c->next);
+         for(c = c->next; c && (!ISVISIBLE(c) || c->iswidget); c = c->next);
       }
       else {
          break;
@@ -3276,10 +3276,10 @@ closeonclick(const Arg *arg) {
    Monitor *m = selmon;
    Client *c, *firstvis;
 
-   for(c = m->clients; c && !ISVISIBLE(c); c = c->next);
-   firstvis								  = c;
+   for(c = m->clients; c && (!ISVISIBLE(c) || c->iswidget); c = c->next);
+   firstvis	= c;
    for(c = m->clients; c; c = c->next)
-      if (ISVISIBLE(c))
+      if(ISVISIBLE(c) && !c->iswidget)
          n++;
 
    if(n > 0) {
@@ -3288,7 +3288,7 @@ closeonclick(const Arg *arg) {
       while(c) {
          tw								  = TEXTW(c->name);
          if(tw < mw) extra			 += (mw - tw); else i++;
-         for(c = c->next; c && !ISVISIBLE(c); c = c->next);
+         for(c = c->next; c && (!ISVISIBLE(c) || c->iswidget); c = c->next);
       }
       if(i > 0) mw += extra / i;
    }
@@ -3307,7 +3307,7 @@ closeonclick(const Arg *arg) {
          } else
             x+=w;
 
-         for(c = c->next; c && !ISVISIBLE(c); c = c->next);
+         for(c = c->next; c && (!ISVISIBLE(c) || c->iswidget); c = c->next);
       }
       else {
          break;
