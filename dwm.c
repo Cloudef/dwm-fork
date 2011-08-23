@@ -1200,20 +1200,25 @@ enternotify(XEvent *e) {
    Monitor *m;
    XCrossingEvent *ev = &e->xcrossing;
 
+   if((ev->mode != NotifyNormal || ev->detail == NotifyInferior))
+      return;
+
+   if(!autofocusmonitor)
+   {
+      if((m = wintomon(ev->window)) && m != selmon) {
+         unfocus(selmon->sel, True);
+         focus(NULL);
+         selmon = m;
+      }
+   }
+   else
+   {
+       if((m = wintomon(ev->window)) && m != selmon)
+          selmon = m;
+   }
+
    if(!clicktofocus)
    {
-      if((ev->mode != NotifyNormal || ev->detail == NotifyInferior))
-         return;
-
-      if(!autofocusmonitor)
-      {
-         if((m = wintomon(ev->window)) && m != selmon) {
-            unfocus(selmon->sel, True);
-            focus(NULL);
-            selmon = m;
-         }
-      }
-
       if((c = wintoclient(ev->window)))
          focus(c);
    }
