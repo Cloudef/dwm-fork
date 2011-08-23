@@ -787,7 +787,7 @@ configurerequest(XEvent *e) {
             c->y = m->my + (m->mh / 2 - c->h / 2); /* center in y direction */
          if((ev->value_mask & (CWX|CWY)) && !(ev->value_mask & (CWWidth|CWHeight)))
             configure(c);
-         if(ISVISIBLE(c))
+         if(ISVISIBLE(c) && !c->iswidget)
             XMoveResizeWindow(dpy, c->win, c->x, c->y, c->w, c->h);
       }
       else
@@ -857,7 +857,7 @@ detachstack(Client *c) {
    *tc = c->snext;
 
    if(c == c->mon->sel) {
-      for(t = c->mon->stack; t && !ISVISIBLE(t); t = t->snext);
+      for(t = c->mon->stack; t && (!ISVISIBLE(t) || t->iswidget); t = t->snext);
       c->mon->sel = t;
    }
 }
@@ -900,11 +900,14 @@ drawbar(Monitor *m) {
    DC seldc;
 
    for(c = m->clients; c; c = c->next) {
-      if(ISVISIBLE(c) && !c->iswidget)
+      if(ISVISIBLE(c))
          n++;
-      occ |= c->tags;
-      if(c->isurgent)
-         urg |= c->tags;
+      if(!c->iswidget)
+      {
+         occ |= c->tags;
+         if(c->isurgent)
+            urg |= c->tags;
+      }
    }
    dc.x	   = 0;
    tagcount = 0;
@@ -1303,17 +1306,17 @@ focusstack(const Arg *arg) {
    if(!selmon->sel)
       return;
    if(arg->i > 0) {
-      for(c = selmon->sel->next; c && !ISVISIBLE(c); c = c->next);
+      for(c = selmon->sel->next; c && (!ISVISIBLE(c) || c->iswidget); c = c->next);
       if(!c)
-         for(c = selmon->clients; c && !ISVISIBLE(c); c = c->next);
+         for(c = selmon->clients; c && (!ISVISIBLE(c) || c->iswidget); c = c->next);
    }
    else {
       for(i = selmon->clients; i != selmon->sel; i = i->next)
-         if(ISVISIBLE(i))
+         if(ISVISIBLE(i) && !c->iswidget)
             c = i;
       if(!c)
          for(; i; i = i->next)
-            if(ISVISIBLE(i))
+            if(ISVISIBLE(i) && !c->iswidget)
                c = i;
    }
    if(c) {
@@ -1711,7 +1714,7 @@ monocle(Monitor *m) {
    Client *c;
 
    for(c = m->clients; c; c = c->next)
-      if(ISVISIBLE(c))
+      if(ISVISIBLE(c) && !c->iswidget)
          n++;
    if(n > 0) /* override layout symbol */
       snprintf(m->ltsymbol, sizeof m->ltsymbol, "[%d]", n);
@@ -1800,7 +1803,7 @@ movemouse(const Arg *arg) {
 
 Client *
 nexttiled(Client *c) {
-   for(; c && (c->isfloating || !ISVISIBLE(c)); c = c->next);
+   for(; c && (c->isfloating || !ISVISIBLE(c) || c->iswidget); c = c->next);
    return c;
 }
 
@@ -2006,7 +2009,7 @@ restack(Monitor *m) {
       wc.stack_mode = Below;
       wc.sibling = m->barwin;
       for(c = m->stack; c; c = c->snext)
-         if(!c->isfloating && ISVISIBLE(c)) {
+         if(!c->isfloating && ISVISIBLE(c) && !c->iswidget) {
             XConfigureWindow(dpy, c->win, CWSibling|CWStackMode, &wc);
             wc.sibling = c->win;
          }
@@ -2409,6 +2412,7 @@ togglefloating(const Arg *arg) {
 
    selmon->sel->isfloating = !selmon->sel->isfloating ||
                               selmon->sel->isfixed;
+
    arrange(selmon);
 }
 
@@ -2806,11 +2810,10 @@ zoom(const Arg *arg) {
    if(!c) return;
 
    /* we can zoom floating stuff too */
-   if(c->isfloating)
+   if(c->isfloating && !c->isfixed)
       c->isfloating = False;
 
    if(!selmon->lt[selmon->sellt]->arrange
-         || selmon->lt[selmon->sellt]->arrange == monocle
          || (selmon->sel && selmon->sel->isfloating))
       return;
 
@@ -2902,19 +2905,19 @@ movestack(const Arg *arg) {
 
    if(arg->i > 0) {
       /* find the client after selmon->sel */
-      for(c = selmon->sel->next; c && (!ISVISIBLE(c) || c->isfloating); c = c->next);
+      for(c = selmon->sel->next; c && (!ISVISIBLE(c) || c->isfloating || c->iswidget); c = c->next);
       if(!c)
-         for(c = selmon->clients; c && (!ISVISIBLE(c) || c->isfloating); c = c->next);
+         for(c = selmon->clients; c && (!ISVISIBLE(c) || c->isfloating || c->iswidget); c = c->next);
 
    }
    else {
       /* find the client before selmon->sel */
       for(i = selmon->clients; i != selmon->sel; i = i->next)
-         if(ISVISIBLE(i) && !i->isfloating)
+         if(ISVISIBLE(i) && !i->isfloating && !i->iswidget)
             c = i;
       if(!c)
          for(; i; i = i->next)
-            if(ISVISIBLE(i) && !i->isfloating)
+            if(ISVISIBLE(i) && !i->isfloating && !i->iswidget)
                c = i;
    }
    /* find the client before selmon->sel and c */
