@@ -787,7 +787,7 @@ configurerequest(XEvent *e) {
             c->y = m->my + (m->mh / 2 - c->h / 2); /* center in y direction */
          if((ev->value_mask & (CWX|CWY)) && !(ev->value_mask & (CWWidth|CWHeight)))
             configure(c);
-         if(ISVISIBLE(c) && !c->iswidget)
+         if(ISVISIBLE(c))
             XMoveResizeWindow(dpy, c->win, c->x, c->y, c->w, c->h);
       }
       else
@@ -1245,7 +1245,7 @@ expose(XEvent *e) {
    XExposeEvent *ev = &e->xexpose;
 
    if(ev->count == 0 && (m = wintomon(ev->window)))
-      drawbar(m);
+   { drawbar(m); if(m->primary) systray_update(); }
 }
 
 void
