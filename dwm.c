@@ -1008,7 +1008,7 @@ drawbar(Monitor *m) {
          if(m->sel == c) seldc = dc;
          if(c == lastvis) dc.w = ow;
 
-         drawtext(c->name, col , True);
+         drawtext(c->name, dc.colors[0], True);
 
          if(c != firstvis)
             drawvline(col);
@@ -2388,6 +2388,7 @@ togglebar(const Arg *arg) {
                wc.y = sh - bh;
 
             XConfigureWindow(dpy, traywin, CWY, &wc);
+            systray_update();
          }
    }
 }

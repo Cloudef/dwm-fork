@@ -3,12 +3,14 @@
  */
 
 /* appearance */
-static const char font[] = "IPAMonaGothic 7";
+static const char font[] = "erusfont 7";
 
 #define NUMCOLORS 8
+
+/*   border,   foreground ,background */
 static const char colors[NUMCOLORS][ColLast][8] = {
-   { "#010101", "#cccccc", "#121212" }, // 0 = normal
-   { "#212121", "#ffffff", "#cc6600" }, // 1 = selected
+   { "#010101", "#ffffff", "#121212" }, // 0 = normal
+   { "#212121", "#010101", "#cc6600" }, // 1 = selected
    { "#ff6600", "#ffffff", "#ff6600" }, // 2 =
    { "#ffffff", "#00BFFF", "#dddddd" }, // 3 =
    { "#ffffff", "#0000ff", "#dddddd" }, // 4 =

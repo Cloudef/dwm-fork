@@ -15,7 +15,7 @@ options:
 	@echo "CC       = ${CC}"
 
 version:
-	@echo version.h
+	@echo "version.h"
 	@echo "#ifndef VERSION_H" &> version.h
 	@echo "#define VERSION_H" >> version.h
 	@echo "#define VERSION \"${VERSION}\"" >> version.h
