@@ -34,8 +34,8 @@ static const int status_height   = 0;
  * everything gets affected */
 static const Edge edges[] = {
    /* X   Y   W   H */
-   {  0,  0, -1, -1 }, // 1
-   {  0,  0,  4, -1 }, // 2
+   {  0,  0,  0, 0 }, // 1
+   {  0,  0,  0, 0 }, // 2
 };
 
 /* window area margins */
@@ -66,7 +66,7 @@ Bool autohide             = False;
 static const Rule rules[] = {
 	/* class      instance    title       tags mask     type           monitor */
    { "Gimp",     NULL,       NULL,       0,            FLOAT,         -1 },
-   { "URxvt",    NULL,       "URxvtq",   0,            URXVTQ,         0 },
+   { "URxvt",    "URxvtq",   NULL,       0,            URXVTQ,         0 },
    { "Oblogout", NULL,       NULL,       0,            URXVTQ,         0 },
    { "MaCoPiX",  NULL,       NULL,       0,            WIDGET,         1 },
    { "Kupfer.py",NULL,       NULL,       0,            WIDGET,        -1 },
