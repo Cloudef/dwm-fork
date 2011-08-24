@@ -14,7 +14,6 @@ xeyes &
 
 # IMPORTANT!
 # Avoids this script from exiting until DWM finishes
-# Do this for all parent shell scripts too.
 # Use pstree to debug your autostart
 # note: it's possible to find DWM's PID by other means,
 # but bash provides it out of the box neatly
