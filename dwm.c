@@ -2018,7 +2018,7 @@ restack(Monitor *m) {
    while(XCheckMaskEvent(dpy, PointerMotionMask, &ev));
 
    /* always above && below */
-   for(c = m->stack; c; c = c->snext)
+   for(c = m->clients; c; c = c->next)
    {
       if(c->isabove)      XRaiseWindow(dpy,c->win);
       else if(c->isbelow) XLowerWindow(dpy, c->win);
