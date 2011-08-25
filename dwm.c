@@ -1876,7 +1876,7 @@ clientmessage(XEvent *e) {
          c->bw = 0;
          c->isfloating = 1;
          togglebar(&((Arg){ .i = 0 }));
-         resizeclient(c, c->mon->ox, c->mon->oy, c->mon->ow - 1, c->mon->oh - 1);
+         resizeclient(c, c->mon->ox, c->mon->oy, c->mon->ow, c->mon->oh);
          if(!c->isbelow) XRaiseWindow(dpy, c->win);
       }
       else {
@@ -2566,8 +2566,8 @@ updategeom(void) {
                m->num = i;
                m->mx = m->wx = m->ox = unique[i].x_org  + edges[i].x; m->wx += margins[i].x;
                m->my = m->wy = m->oy = unique[i].y_org  + edges[i].y; m->wy += margins[i].y;
-               m->mw = m->ww = m->ow = unique[i].width  + 1 - edges[i].w; m->ww -= margins[i].w;
-               m->mh = m->wh = m->oh = unique[i].height + 1 - edges[i].h; m->wh -= margins[i].h;
+               m->mw = m->ww = m->ow = unique[i].width  - edges[i].w; m->ww -= margins[i].w;
+               m->mh = m->wh = m->oh = unique[i].height - edges[i].h; m->wh -= margins[i].h;
                m->margin = &margins[i];
                m->edge   = &edges[i];
 
