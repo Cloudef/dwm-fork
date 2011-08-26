@@ -1,6 +1,6 @@
 # dwm version
 VERSION = `git rev-parse HEAD`
-COMMIT  = `git log --format=%B -n 1 HEAD`
+COMMIT  = `git log --format=%B -n 1 HEAD | head -n1`
 
 # Customize below to fit your system
 

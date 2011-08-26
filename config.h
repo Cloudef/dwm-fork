@@ -155,8 +155,8 @@ static Key keys[] = {
   	{ MODKEY,                       XK_KP_Delete,togglefloating,{0} },
 	{ MODKEY,                       XK_KP_Home,  setmfact,     {.f = -0.05} },
 	{ MODKEY,                       XK_KP_Up,    setmfact,     {.f = +0.05} },
- 	{ MODKEY,                       XK_KP_Left,  focusstack,   {.i = +1 } },
-	{ MODKEY,                       XK_KP_5,     focusstack,   { .i = -1 } },
+ 	{ MODKEY,                       XK_KP_Left,  focusstack,   {.i = -1} },
+	{ MODKEY,                       XK_KP_Right, focusstack,   {.i = +1} },
    { MODKEY,                       XK_KP_Page_Down,  togglelayout,   {.v = &layouts[5]} },
    { MODKEY,                       XK_F12,      togglefullscreen, {0} },
 	TAGKEYS(                        XK_1,                      0)
