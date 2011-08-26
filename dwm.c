@@ -281,6 +281,7 @@ static void	      togglebar(const Arg *arg);
 static void	      togglefloating(const Arg *arg);
 static void	      toggletag(const Arg *arg);
 static void	      toggleview(const Arg *arg);
+void       togglefullscreen(const Arg *arg);
 static void	      unfocus(Client *c, Bool setfocus);
 static void	      unmanage(Client *c, Bool destroyed);
 static void	      unmapnotify(XEvent *e);
@@ -954,25 +955,28 @@ drawbar(Monitor *m) {
       }
    }
 
-   dc.w=0;
-   char *buf = stext, *ptr = buf;
-   while( *ptr ) {
-      for( i = 0; *ptr < 0 || *ptr > NUMCOLORS; i++, ptr++);
-      dc.w += textnw(buf,i);
-      buf=++ptr;
-   }
-   dc.w +=	dc.font.height / 2;
-   dc.x  = m->ww - dc.w;
-   if(systray_enable)
+   if(m == selmon || alwaysdrawstatus)
    {
-      if(m->primary) dc.x  = dc.x - systray_get_width();		// subtract systray width
+      dc.w=0;
+      char *buf = stext, *ptr = buf;
+      while( *ptr ) {
+         for( i = 0; *ptr < 0 || *ptr > NUMCOLORS; i++, ptr++);
+         dc.w += textnw(buf,i);
+         buf=++ptr;
+      }
+      dc.w +=	dc.font.height / 2;
+      dc.x  = m->ww - dc.w;
+      if(systray_enable)
+      {
+         if(m->primary) dc.x  = dc.x - systray_get_width();		// subtract systray width
+      }
+      if(dc.x < x) {
+         dc.x = x;
+         dc.w = m->ww - x;
+      }
+      m->titlebarend = dc.x;
+      drawcoloredtext(stext);
    }
-   if(dc.x < x) {
-      dc.x = x;
-      dc.w = m->ww - x;
-   }
-   m->titlebarend = dc.x;
-   drawcoloredtext(stext);
 
    for(c = m->clients; c && (!ISVISIBLE(c) || c->iswidget); c = c->next);
       firstvis = c;
@@ -1665,7 +1669,8 @@ manage(Window w, XWindowAttributes *wa) {
 
    /* some windows require this */
    setclientstate(c, NormalState);
-   XMoveResizeWindow(dpy, c->win, c->x + 2 * sw, c->y, c->w, c->h);
+   //XMoveResizeWindow(dpy, c->win, c->x + 2 * sw, c->y, c->w, c->h);
+   XMoveResizeWindow(dpy, c->win, c->x, c->y, c->w, c->h);
 
    XMapWindow(dpy, c->win);
 
@@ -1827,14 +1832,20 @@ propertynotify(XEvent *e) {
    if((s = systray_find(ev->window)))
    {
       systray_state(s);
-
       systray_update();
    }
 
    if((ev->window == root) && (ev->atom == XA_WM_NAME))
       updatestatus();
    else if(ev->state == PropertyDelete)
+   {
+      if((s = systray_find(ev->window)))
+      {
+         systray_del(s);
+         systray_update();
+      }
       return; /* ignore */
+   }
    else if((c = wintoclient(ev->window))) {
       switch (ev->atom) {
          default: break;
@@ -1856,6 +1867,42 @@ propertynotify(XEvent *e) {
          if(c == c->mon->sel)
             drawbar(c->mon);
       }
+   }
+}
+
+void
+togglefullscreen( const Arg *arg ) {
+   Client *c;
+
+   c = selmon->sel;
+   if(!c) return;
+
+   if(!c->isfullscreen)
+   {
+      XChangeProperty(dpy, c, netatom[NetWMState], XA_ATOM, 32,
+            PropModeReplace, (unsigned char*)&netatom[NetWMFullscreen], 1);
+      c->isfullscreen = True;
+      c->oldstate = c->isfloating;
+      c->oldbw = c->bw;
+      c->bw = 0;
+      c->isfloating = 1;
+      togglebar(&((Arg){ .i = 0 }));
+      resizeclient(c, c->mon->ox, c->mon->oy, c->mon->ow, c->mon->oh);
+      if(!c->isbelow) XRaiseWindow(dpy, c->win);
+   }
+   else {
+      XChangeProperty(dpy, c, netatom[NetWMState], XA_ATOM, 32,
+            PropModeReplace, (unsigned char*)0, 0);
+      c->isfullscreen = False;
+      c->isfloating = c->oldstate;
+      c->bw = c->oldbw;
+      c->x = c->oldx;
+      c->y = c->oldy;
+      c->w = c->oldw;
+      c->h = c->oldh;
+      togglebar(&((Arg){ .i = 1 }));
+      resizeclient(c, c->x, c->y, c->w, c->h);
+      arrange(c->mon);
    }
 }
 
@@ -2697,7 +2744,10 @@ void
 updatestatus(void) {
    if(!gettextprop(root, XA_WM_NAME, stext, sizeof(stext)))
       strcpy(stext, VERSION);
-   drawbar(selmon);
+   if(!alwaysdrawstatus)
+      drawbar(selmon);
+   else
+      drawbars();
 }
 
 void
