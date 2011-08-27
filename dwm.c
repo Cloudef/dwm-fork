@@ -1307,6 +1307,8 @@ void
 focusstack(const Arg *arg) {
    Client *c = NULL, *i;
 
+   if(!selmon)
+      return;
    if(!selmon->sel)
       return;
    if(arg->i > 0) {
@@ -1316,11 +1318,11 @@ focusstack(const Arg *arg) {
    }
    else {
       for(i = selmon->clients; i != selmon->sel; i = i->next)
-         if(ISVISIBLE(i) && !c->iswidget)
+         if(ISVISIBLE(i) && !i->iswidget)
             c = i;
       if(!c)
          for(; i; i = i->next)
-            if(ISVISIBLE(i) && !c->iswidget)
+            if(ISVISIBLE(i) && !i->iswidget)
                c = i;
    }
    if(c) {
@@ -1838,14 +1840,7 @@ propertynotify(XEvent *e) {
    if((ev->window == root) && (ev->atom == XA_WM_NAME))
       updatestatus();
    else if(ev->state == PropertyDelete)
-   {
-      if((s = systray_find(ev->window)))
-      {
-         systray_del(s);
-         systray_update();
-      }
       return; /* ignore */
-   }
    else if((c = wintoclient(ev->window))) {
       switch (ev->atom) {
          default: break;
@@ -3075,7 +3070,8 @@ void
 systray_add(Window win) {
    Systray *s;
 
-   if(!systray_enable) return;
+   if(!systray_enable)   return;
+   if(systray_find(win)) return; /* don't add same window again */
 
    s = zcalloc(sizeof(Systray));
    s->win = win;
