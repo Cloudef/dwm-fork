@@ -1874,7 +1874,7 @@ togglefullscreen( const Arg *arg ) {
 
    if(!c->isfullscreen)
    {
-      XChangeProperty(dpy, c, netatom[NetWMState], XA_ATOM, 32,
+      XChangeProperty(dpy, c->win, netatom[NetWMState], XA_ATOM, 32,
             PropModeReplace, (unsigned char*)&netatom[NetWMFullscreen], 1);
       c->isfullscreen = True;
       c->oldstate = c->isfloating;
@@ -1886,7 +1886,7 @@ togglefullscreen( const Arg *arg ) {
       if(!c->isbelow) XRaiseWindow(dpy, c->win);
    }
    else {
-      XChangeProperty(dpy, c, netatom[NetWMState], XA_ATOM, 32,
+      XChangeProperty(dpy, c->win, netatom[NetWMState], XA_ATOM, 32,
             PropModeReplace, (unsigned char*)0, 0);
       c->isfullscreen = False;
       c->isfloating = c->oldstate;
@@ -3186,6 +3186,9 @@ systray_update(void) {
 
    XMapRaised(dpy, traywin);
    XSync(dpy, False);
+
+   /* update status bar */
+   drawbar(m);
 
    return;
 }

@@ -76,7 +76,6 @@ static const Rule rules[] = {
    { "Kupfer.py",NULL,       NULL,       0,            WIDGET,        -1 },
    { "dzen",     "dzen2",    NULL,       0,            CONKY,         -1 },
    { "Conky",    NULL,       NULL,       0,            CONKY,          1 },
-   { "Cairo-dock", "cairo-dock", NULL,   0,            DOCK,           0 }, /* not used */
    { "URxvt",    NULL,       "rTorrent", 1 << 4,       NORMAL,         1 },
    { "URxvt",    NULL,       "SnowNews", 1 << 3,       NORMAL,         1 },
    { "URxvt",    NULL,       "MSN",      1 << 2,       NORMAL,         1 },
