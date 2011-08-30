@@ -2045,8 +2045,8 @@ restack(Monitor *m) {
    drawbar(m);
    if(!m->sel)
       return;
-   if(m->sel->isfloating || !m->lt[m->sellt]->arrange)
-      if(!m->sel->isbelow) XRaiseWindow(dpy, m->sel->win);
+   //if(m->sel->isfloating || !m->lt[m->sellt]->arrange)
+   //   if(!m->sel->isbelow) XRaiseWindow(dpy, m->sel->win);
    if(m->lt[m->sellt]->arrange) {
       wc.stack_mode = Below;
       wc.sibling = m->barwin;
@@ -2300,7 +2300,7 @@ showhide(Client *c) {
    { /* show clients top down */
       XMoveWindow(dpy, c->win, c->x, c->y);
       if((!c->mon->lt[c->mon->sellt]->arrange || c->isfloating) && !c->isfullscreen)
-      { XRaiseWindow( dpy, c->win ); resize(c, c->x, c->y, c->w, c->h, False); }
+         resize(c, c->x, c->y, c->w, c->h, False);
       showhide(c->snext);
    }
    else { /* hide clients bottom up */
