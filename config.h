@@ -70,6 +70,8 @@ Bool autohide             = False;
 static const Rule rules[] = {
 	/* class      instance    title       tags mask     type           monitor */
    { "Gimp",     NULL,       NULL,       0,            FLOAT,         -1 },
+   { "Pcmanfm",  NULL,       NULL,       0,            FLOAT,         -1 },
+   { "File-roller",  NULL,   NULL,       0,            FLOAT,         -1 },
    { "URxvt",    "URxvtq",   NULL,       0,            URXVTQ,         0 },
    { "Oblogout", NULL,       NULL,       0,            URXVTQ,         0 },
    { "MaCoPiX",  NULL,       NULL,       0,            WIDGET,         1 },

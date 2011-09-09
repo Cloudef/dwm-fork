@@ -836,7 +836,8 @@ destroynotify(XEvent *e) {
 
    if((c = wintoclient(ev->window)))
       unmanage(c, True);
-   else if((s = systray_find(ev->window))){
+
+   if((s = systray_find(ev->window))){
       systray_del(s);
       systray_update();
    }
@@ -2443,6 +2444,40 @@ togglebar(const Arg *arg) {
    }
 }
 
+static void
+togglebarm(Monitor *m, int toggle)
+{
+   if(!m) return;
+   if(toggle != -1)
+      m->showbar = toggle;
+   else
+      m->showbar = !m->showbar;
+   updatebarpos(m);
+   XMoveResizeWindow(dpy, m->barwin, m->wx, m->by, m->ww, bh);
+   arrange(m);
+
+   if(systray_enable && m->primary)
+   {
+      XWindowChanges wc;
+      if(!m->showbar)
+      {
+         wc.y = -bh;
+         XConfigureWindow(dpy, traywin, CWY, &wc);
+      }
+      else
+         if(m->showbar)
+         {
+            if(topbar)
+               wc.y = 0;
+            else
+               wc.y = sh - bh;
+
+            XConfigureWindow(dpy, traywin, CWY, &wc);
+            systray_update();
+         }
+   }
+}
+
 void
 togglefloating(const Arg *arg) {
    if(!selmon->sel)
@@ -2496,8 +2531,9 @@ unmanage(Client *c, Bool destroyed) {
    Monitor *m = c->mon;
    XWindowChanges wc;
 
-   if(selmon->sel && selmon->sel->isfullscreen)
-         togglebar(&((Arg){ .i = 1 }));
+   selmon = m;
+   if(c && c->isfullscreen)
+      togglebarm(m, 1);
 
    /* The server grab construct avoids race conditions. */
    detach(c);
@@ -3308,6 +3344,8 @@ focusonclick(const Arg *arg) {
          if (x < arg->i && x+w > arg->i) {
             focus(c);
             restack(selmon);
+            if(c->isfloating)
+               XRaiseWindow(dpy, c->win);
 
             break;
          } else
