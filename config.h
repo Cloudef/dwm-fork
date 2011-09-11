@@ -126,69 +126,69 @@ static const char *kupfer[] = { "kupfer", NULL };
 static const char *oblogout[] = { "oblogout", NULL };
 
 static Key keys[] = {
-   /* modifier                     key        function        argument */
-   { 0,                            0x1008ff11,spawn,          {.v = dvolminus } },
-   { 0,                            0x1008ff13,spawn,          {.v = dvolplus  } },
-   { 0,                            0x1008ff12,spawn,          {.v = dvolmute  } },
-   { 0,                            0x1008ff30,spawn,          {.v = termcmd   } },
-   { 0,                            XK_section,spawn,         SHCMD("$HOME/.config/dwm/urxvtq") },
-	{ MODKEY,                       XK_p,      spawn,          {.v = dmenucmd } },
-	{ MODKEY|ShiftMask,             XK_Return, spawn,          {.v = termcmd } },
-	{ MODKEY,                       XK_b,      togglebar,      {.i = -1} },
-	{ MODKEY,                       XK_j,      focusstack,     {.i = +1 } },
-	{ MODKEY,                       XK_k,      focusstack,     {.i = -1 } },
-	{ MODKEY,                       XK_h,      setmfact,       {.f = -0.05} },
-	{ MODKEY,                       XK_l,      setmfact,       {.f = +0.05} },
-	{ MODKEY,                       XK_Return, zoom,           {0} },
-	{ MODKEY,                       XK_q,      killclient,     {0} },
-   { ALTKEY,                       XK_s,      resizemouse,    {0} },
-   { MODKEY,                       XK_s,      togglesticky,   {0} },
-   { ALTKEY,                       XK_F2,     spawn,          {.v = kupfer} },
-	{ MODKEY,                       XK_0,      view,           {.ui = ~0 } },
-	{ MODKEY|ShiftMask,             XK_0,      tag,            {.ui = ~0 } },
-	{ MODKEY,                       XK_comma,  focusmon,       {.i = -1 } },
-	{ MODKEY,                       XK_period, focusmon,       {.i = +1 } },
-	{ MODKEY|ShiftMask,             XK_comma,  tagmon,         {.i = -1 } },
-	{ MODKEY|ShiftMask,             XK_period, tagmon,         {.i = +1 } },
-   { MODKEY,                       XK_KP_End,   nextlayout,     {0} },
-   { MODKEY,                       XK_KP_Down,  prevlayout,     {0} },
- 	{ MODKEY,                       XK_KP_Insert,cyclezoom,      {0} },
-  	{ MODKEY,                       XK_KP_Delete,togglefloating,{0} },
-	{ MODKEY,                       XK_KP_Home,  setmfact,     {.f = -0.05} },
-	{ MODKEY,                       XK_KP_Up,    setmfact,     {.f = +0.05} },
- 	{ MODKEY,                       XK_KP_Left,  focusstack,   {.i = -1} },
-	{ MODKEY,                       XK_KP_Right, focusstack,   {.i = +1} },
-   { MODKEY,                       XK_KP_Page_Down,  togglelayout,   {.v = &layouts[5]} },
-   { MODKEY,                       XK_F12,      togglefullscreen, {0} },
-	TAGKEYS(                        XK_1,                      0)
-	TAGKEYS(                        XK_2,                      1)
-	TAGKEYS(                        XK_3,                      2)
-	TAGKEYS(                        XK_4,                      3)
-	TAGKEYS(                        XK_5,                      4)
-	TAGKEYS(                        XK_6,                      5)
-	TAGKEYS(                        XK_7,                      6)
-	TAGKEYS(                        XK_8,                      7)
-	TAGKEYS(                        XK_9,                      8)
-	{ MODKEY,                       XK_Escape, spawn,          {.v = oblogout} },
-   { MODKEY|ShiftMask,             XK_q,      restart,         {0} }
+   /* modifier                     key                function          argument */
+   { 0,                            0x1008ff11,        spawn,            {.v = dvolminus } },
+   { 0,                            0x1008ff13,        spawn,            {.v = dvolplus  } },
+   { 0,                            0x1008ff12,        spawn,            {.v = dvolmute  } },
+   { 0,                            0x1008ff30,        spawn,            {.v = termcmd   } },
+   { 0,                            XK_section,        spawn,            SHCMD("$HOME/.config/dwm/urxvtq") },
+   { MODKEY,                       XK_p,              spawn,            {.v = dmenucmd } },
+   { MODKEY|ShiftMask,             XK_Return,         spawn,            {.v = termcmd } },
+   { MODKEY,                       XK_b,              togglebar,        {.i = -1} },
+   { MODKEY,                       XK_j,              focusstack,       {.i = +1 } },
+   { MODKEY,                       XK_k,              focusstack,       {.i = -1 } },
+   { MODKEY,                       XK_h,              setmfact,         {.f = -0.05} },
+   { MODKEY,                       XK_l,              setmfact,         {.f = +0.05} },
+   { MODKEY,                       XK_Return,         zoom,             {0} },
+   { MODKEY,                       XK_q,              killclient,       {0} },
+   { ALTKEY,                       XK_s,              resizemouse,      {0} },
+   { MODKEY,                       XK_s,              togglesticky,     {0} },
+   { ALTKEY,                       XK_F2,             spawn,            {.v = kupfer} },
+   { MODKEY,                       XK_0,              view,             {.ui = ~0 } },
+   { MODKEY|ShiftMask,             XK_0,              tag,              {.ui = ~0 } },
+   { MODKEY,                       XK_comma,          focusmon,         {.i = -1 } },
+   { MODKEY,                       XK_period,         focusmon,         {.i = +1 } },
+   { MODKEY|ShiftMask,             XK_comma,          tagmon,           {.i = -1 } },
+   { MODKEY|ShiftMask,             XK_period,         tagmon,           {.i = +1 } },
+   { MODKEY,                       XK_KP_End,         nextlayout,       {0} },
+   { MODKEY,                       XK_KP_Down,        prevlayout,       {0} },
+   { MODKEY,                       XK_KP_Insert,      cyclezoom,        {0} },
+   { MODKEY,                       XK_KP_Delete,      togglefloating,   {0} },
+   { MODKEY,                       XK_KP_Home,        setmfact,         {.f = -0.05} },
+   { MODKEY,                       XK_KP_Up,          setmfact,         {.f = +0.05} },
+   { MODKEY,                       XK_KP_Left,        focusstack,       {.i = -1} },
+   { MODKEY,                       XK_KP_Right,       focusstack,       {.i = +1} },
+   { MODKEY,                       XK_KP_Page_Down,   togglelayout,     {.v = &layouts[5]} },
+   { MODKEY,                       XK_F12,            togglefullscreen, {0} },
+   TAGKEYS(                        XK_1,                      0)
+   TAGKEYS(                        XK_2,                      1)
+   TAGKEYS(                        XK_3,                      2)
+   TAGKEYS(                        XK_4,                      3)
+   TAGKEYS(                        XK_5,                      4)
+   TAGKEYS(                        XK_6,                      5)
+   TAGKEYS(                        XK_7,                      6)
+   TAGKEYS(                        XK_8,                      7)
+   TAGKEYS(                        XK_9,                      8)
+   { MODKEY,                       XK_Escape,         spawn,            {.v = oblogout} },
+   { MODKEY|ShiftMask,             XK_q,              restart,          {0} }
 };
 
 /* button definitions */
 /* click can be ClkLtSymbol, ClkStatusText, ClkWinTitle, ClkClientWin, or ClkRootWin */
 static Button buttons[] = {
-	/* click                event mask      button          function        argument */
-	{ ClkLtSymbol,          0,              Button1,        nextlayout,      {0} },
-	{ ClkLtSymbol,          0,              Button3,        prevlayout,      {0} },
-	{ ClkWinTitle,          0,              Button2,        zoom,           {0} },
+   /* click                event mask      button          function        argument */
+   { ClkLtSymbol,          0,              Button1,        nextlayout,     {0} },
+   { ClkLtSymbol,          0,              Button3,        prevlayout,     {0} },
+   { ClkWinTitle,          0,              Button2,        zoom,           {0} },
    { ClkWinTitle,          0,              Button1,        focusonclick,   {0} },
    { ClkWinTitle,          0,              Button3,        closeonclick,   {0} },
-	{ ClkStatusText,        0,              Button2,        spawn,          {.v = termcmd } },
-	{ ClkClientWin,         ALTKEY,         Button1,        movemouse,      {0} },
-	{ ClkClientWin,         ALTKEY,         Button2,        zoom,           {0} },
- 	{ ClkClientWin,         MODKEY,         Button2,        zoom,           {0} },
-	{ ClkTagBar,            0,              Button1,        view,           {0} },
-	{ ClkTagBar,            0,              Button3,        toggleview,     {0} },
-	{ ClkTagBar,            ALTKEY,         Button1,        tag,            {0} },
-	{ ClkTagBar,            ALTKEY,         Button3,        toggletag,      {0} },
+   { ClkStatusText,        0,              Button2,        spawn,          {.v = termcmd } },
+   { ClkClientWin,         ALTKEY,         Button1,        movemouse,      {0} },
+   { ClkClientWin,         ALTKEY,         Button2,        zoom,           {0} },
+   { ClkClientWin,         MODKEY,         Button2,        zoom,           {0} },
+   { ClkTagBar,            0,              Button1,        view,           {0} },
+   { ClkTagBar,            0,              Button3,        toggleview,     {0} },
+   { ClkTagBar,            ALTKEY,         Button1,        tag,            {0} },
+   { ClkTagBar,            ALTKEY,         Button3,        toggletag,      {0} },
 };
 
