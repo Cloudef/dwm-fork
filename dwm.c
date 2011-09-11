@@ -137,7 +137,7 @@ typedef struct
    int x, y, w, h;
 } Edge;
 
-=struct Monitor {
+struct Monitor {
    char              ltsymbol[16];
    float             mfact;
    int               num;
