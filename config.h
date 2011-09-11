@@ -68,7 +68,7 @@ Bool autohide             = False;
 #define DOCK   True,    True,    False,   True,    False,   True
 
 static const Rule rules[] = {
-	/* class      instance    title       tags mask     type           monitor */
+   /* class      instance    title       tags mask     type           monitor */
    { "Gimp",     NULL,       NULL,       0,            FLOAT,         -1 },
    { "Pcmanfm",  NULL,       NULL,       0,            FLOAT,         -1 },
    { "File-roller",  NULL,   NULL,       0,            FLOAT,         -1 },
@@ -108,10 +108,10 @@ static const Layout layouts[]  = {
 #define MODKEY Mod4Mask
 #define ALTKEY Mod1Mask
 #define TAGKEYS(KEY,TAG) \
-	{ MODKEY,                       KEY,      view,           {.ui = 1 << TAG} }, \
-	{ MODKEY|ControlMask,           KEY,      toggleview,     {.ui = 1 << TAG} }, \
-	{ MODKEY|ShiftMask,             KEY,      tag,            {.ui = 1 << TAG} }, \
-	{ MODKEY|ControlMask|ShiftMask, KEY,      toggletag,      {.ui = 1 << TAG} },
+        { MODKEY,                       KEY,      view,           {.ui = 1 << TAG} }, \
+        { MODKEY|ControlMask,           KEY,      toggleview,     {.ui = 1 << TAG} }, \
+        { MODKEY|ShiftMask,             KEY,      tag,            {.ui = 1 << TAG} }, \
+        { MODKEY|ControlMask|ShiftMask, KEY,      toggletag,      {.ui = 1 << TAG} },
 
 /* helper for spawning shell commands in the pre dwm-5.0 fashion */
 #define SHCMD(cmd) { .v = (const char*[]){ "/bin/sh", "-c", cmd, NULL } }
