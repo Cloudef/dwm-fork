@@ -46,6 +46,7 @@
 #define HEIGHT(X)               ((X)->h + 2 * (X)->bw)
 #define TAGMASK                 ((1 << LENGTH(tags)) - 1)
 #define TEXTW(X)                (textnw(X, strlen(X)) + dc.font.height)
+#define TEXTW2(X)               (textnw(X, strlen(X)))
 #define ROOT                    RootWindow(dpy, DefaultScreen(dpy))
 #define zcalloc(size)           calloc(1, (size))
 #define IFREE(x)                if(x) free(x)
@@ -190,7 +191,24 @@ Window   traywin;
 
 static unsigned int occ = 0;
 
+typedef struct menuCtx {
+   char *title;
+   const struct menuCtx *ctx;
+   void (*func)(const Arg *);
+   const Arg arg;
+} menuCtx;
+typedef struct menu_t {
+   Window win;
+   int x, y, w, h;
+   Drawable drawable;
+   struct menu_t  *next;
+   const struct menuCtx *ctx;
+   const struct menuCtx *sel;
+} menu_t;
+menu_t *menu  = NULL;
+
 /* function declarations */
+static void           togglemenu(const Arg *arg);
 static void           applyrules(Client *c);
 static Bool           applysizehints(Client *c, int *x, int *y, int *w, int *h, Bool interact);
 static void           arrange(Monitor *m);
@@ -216,13 +234,14 @@ static void           die(const char *errstr, ...);
 static Monitor       *dirtomon(int dir);
 static void           drawbar(Monitor *m);
 static void           drawbars(void);
-static void           drawvline(unsigned long col[ColLast]);
+static void           drawvline(size_t col_index);
 static void           drawcoloredtext(char *text);
 // static void                   drawsquare(Bool filled, Bool empty, unsigned long col[ColLast]);
-static void           drawsquare(Bool filled, Bool empty, Bool invert, unsigned long col[ColLast]);
-static void           drawtext(const char *text, unsigned long col[ColLast], Bool pad);
+static void           drawsquare(Bool filled, Bool empty, Bool invert, size_t col_index);
+static void           drawtext(const char *text, size_t col_index, Bool pad);
 // static void         drawtext(const char *text, unsigned long col[ColLast], Bool invert, Bool pad);
 static void           enternotify(XEvent *e);
+static void           leavenotify(XEvent *e);
 static void           motionnotify(XEvent *e);
 static void           expose(XEvent *e);
 static void           focus(Client *c);
@@ -345,6 +364,7 @@ static void (*handler[LASTEvent]) (XEvent *) = {
    [ConfigureNotify]          = configurenotify,
    [DestroyNotify]            = destroynotify,
    [EnterNotify]              = enternotify,
+   [LeaveNotify]              = leavenotify,
    [MotionNotify]             = motionnotify,
    [Expose]                   = expose,
    [FocusIn]                  = focusin,
@@ -570,15 +590,232 @@ prevlayout(const Arg *arg) {
       setlayout(&((Arg) { .v = &layouts[LENGTH(layouts) - 2] }));
 }
 
+static void openmenupos( const menuCtx *ctx, int x, int y );
+static void closemenu( menu_t *target );
+static void
+updatemenu( menu_t *m, int x, int y ) {
+   Drawable dble = dc.drawable;
+   int ow = dc.w, oh = dc.h, ox = dc.x, oy = dc.y;
+   int sely = 0;
+   size_t col;
+
+   if(!m) return;
+   const menuCtx *osel = m->sel;
+   m->sel = NULL;
+
+   dc.drawable = m->drawable;
+#ifdef XFT
+   XftDrawChange(dc.xftdrawable, dc.drawable);
+#endif
+   size_t i;
+   dc.x = 0;   dc.y = 0;
+   dc.w = m->w; dc.h = m->h;
+
+   for(i = 0; m->ctx[i].title; ++i)
+   {
+      col = x > 0    && x < TEXTW2(m->ctx[i].title)
+         && y > dc.y && y < dc.y + dc.font.height ? 5 : 6;
+      drawtext(m->ctx[i].title, col, False);
+      if(col == 5) { m->sel = &m->ctx[i]; sely = dc.y; }
+
+      dc.y += dc.font.height;
+   }
+
+   XCopyArea(dpy, dc.drawable, m->win, dc.gc, 0, 0, m->w, m->h, 0, 0);
+   XSync(dpy, False);
+
+   dc.w = ow; dc.h = oh; dc.x = ox; dc.y = oy;
+   dc.drawable = dble;
+#ifdef XFT
+   XftDrawChange(dc.xftdrawable, dc.drawable);
+#endif
+
+   if(m->sel && m->sel != osel)
+      if(m->sel->ctx != NULL)
+      {
+         if(m->next) closemenu(m->next);
+         openmenupos( m->sel->ctx, m->x + m->w, m->y + sely );
+      }
+}
+
+menu_t*
+wintomenu( Window win )
+{
+   menu_t *m;
+
+   if(!menu) return(NULL);
+   for( m = menu; m; m = m->next )
+      if(m->win == win) return(m);
+
+   return(NULL);
+}
+
+menu_t*
+ctxtomenu( const menuCtx *ctx )
+{
+   menu_t *m;
+
+   if(!menu) return(NULL);
+   for( m = menu; m; m = m->next )
+      if(m->ctx == ctx) return(m);
+
+   return(NULL);
+}
+
+static int
+createmenu( menu_t *m, const menuCtx *ctx, int x, int y ) {
+   size_t i;
+   if(ctxtomenu(ctx)) return(-1);
+
+   m->x    = x;
+   m->y    = y;
+   m->w    = 0;
+   m->h    = 0;
+   m->ctx  = ctx;
+   m->sel  = NULL;
+
+   for(i = 0; m->ctx[i].title; ++i)
+   {
+      if(m->w < TEXTW2(m->ctx[i].title))
+         m->w = TEXTW2(m->ctx[i].title);
+      m->h += dc.font.height;
+   }
+   if(i == 0) return(-1);
+
+   XSetWindowAttributes wattr;
+   wattr.override_redirect = True;
+   wattr.background_pixmap = ParentRelative;
+   wattr.event_mask = ButtonPressMask|ExposureMask;
+
+   m->win = XCreateWindow(dpy, root, m->x, m->y, m->w, m->h, 0, DefaultDepth(dpy, screen), CopyFromParent, DefaultVisual(dpy, screen), CWBackPixmap|CWOverrideRedirect|CWEventMask, &wattr);
+
+   if(m == menu)
+      XSelectInput(dpy, m->win, PointerMotionMask|ButtonPressMask);
+   else
+      XSelectInput(dpy, m->win, PointerMotionMask|ButtonPressMask|LeaveWindowMask);
+
+   XDefineCursor(dpy, m->win, cursor[CurNormal]);
+   XMapRaised(dpy, m->win);
+
+   m->drawable = XCreatePixmap(dpy, root, m->w, m->h, DefaultDepth(dpy, screen));
+   updatemenu(m, m->x, m->y);
+
+   return(0);
+}
+
+static void
+openmenupos( const menuCtx *ctx, int x, int y ) {
+   menu_t **m, *mm;
+
+   m  = &menu;
+   mm =  menu;
+   for(; mm; mm = mm->next)
+      m = &mm->next;
+
+   *m = calloc(1, sizeof(menu_t));
+   if(!*m)
+      return;
+
+   (*m)->next = NULL;
+   if(createmenu(*m, ctx, x, y) == -1)
+   { free(*m); *m = NULL; }
+}
+
+static void
+openmenu( const menuCtx *ctx ) {
+   int x, y;
+   getrootptr( &x, &y );
+   openmenupos( ctx, x, y );
+}
+
+static void
+closemenu( menu_t *target )
+{
+   menu_t **m, *mm;
+
+   if(!target) return;
+
+   m = &menu;
+   for( mm = menu; mm->next && mm->next != target; mm = mm->next )
+      m = &mm;
+
+   (*m)->next = target->next;
+
+   XFreePixmap(dpy, target->drawable);
+   XDestroyWindow(dpy, target->win);
+   free(target);
+   XSync(dpy, False);
+}
+
+static void
+closemenus(void) {
+   if(!menu) return;
+
+   menu_t *m = menu, *next = NULL;
+   while(m)
+   {
+      XDestroyWindow(dpy, m->win);
+
+      next = m->next; free(m);
+      m = next;
+   }
+   XSync(dpy, False);
+   menu = NULL;
+}
+
+void
+togglemenu(const Arg *arg) {
+   if(!menu)
+      openmenu(&rootMenu[0]);
+   else
+      closemenus();
+}
+
+static void
+buttonmenu( menu_t *m, int x, int y )
+{
+   if(!m) return;
+   updatemenu(m, x, y);
+   if(!m->sel)       return;
+   if(!m->sel->func) return;
+
+   m->sel->func(&m->sel->arg);
+   closemenus();
+}
+
+void
+leavenotify(XEvent *e) {
+   menu_t *mm;
+   XCrossingEvent *ev = &e->xcrossing;
+
+   if((mm = wintomenu(ev->window)))
+   {
+      if(!mm->next) closemenu(mm);
+      return;
+   }
+}
+
 void
 buttonpress(XEvent *e) {
    unsigned int i, x, click;
    Arg arg = {0};
    Client *c = NULL;
    Monitor *m;
+   menu_t *mm;
    XButtonPressedEvent *ev = &e->xbutton;
 
    click = ClkRootWin;
+
+   if(ev->button == Button1)
+   {
+      if((mm = wintomenu(ev->window)))
+      {
+         buttonmenu(mm, ev->x, ev->y);
+         return;
+      }
+   }
+   if(menu)
+      closemenus();
 
    if(!autofocusmonitor)
    {
@@ -807,7 +1044,7 @@ configurerequest(XEvent *e) {
    XSync(dpy, False);
 }
 
-static const Edge DEDGE = { 0, 0, 0, 0 };
+static Edge DEDGE = { 0, 0, 0, 0 };
 Monitor *
 createmon(void) {
    Monitor *m;
@@ -897,7 +1134,7 @@ drawbar(Monitor *m) {
    unsigned int   i, n  = 0 , urg = 0;
    occ = 0;
    char    posbuf[10];
-   unsigned long *col;
+   size_t  col;
    Client         *c, *firstvis, *lastvis = NULL;
    DC seldc;
 
@@ -915,8 +1152,7 @@ drawbar(Monitor *m) {
    tagcount = 0;
 
    for(i = 0; i < LENGTH(tags); i++) {
-      col = dc.colors[ (m->tagset[m->seltags] & 1 << i) ?
-         1 : (urg & 1 << i ? 2:0) ];
+      col = (m->tagset[m->seltags] & 1 << i) ? 1 : (urg & 1 << i) ? 2 : (occ & 1 << i) ? 3 : 0;
       if(autohide) {
 
          if((occ & 1 << i ) || (m->tagset[m->seltags] & 1 << i)) {
@@ -928,7 +1164,7 @@ drawbar(Monitor *m) {
 
       }
       else {
-         dc.w    = TEXTW(tags[i]);
+         dc.w = TEXTW(tags[i]);
          drawtext(tags[i], col , True);
          drawsquare(m == selmon && selmon->sel && selmon->sel->tags & 1 << i , occ & 1 << i, urg & 1 << i, col);
          dc.x += dc.w;
@@ -936,7 +1172,7 @@ drawbar(Monitor *m) {
    }
 
    dc.w  = blw = TEXTW(m->ltsymbol);
-   drawtext(m->ltsymbol, dc.colors[0], True);
+   drawtext(m->ltsymbol, 4, True);
    dc.x += dc.w;
    x = dc.x;
 
@@ -950,8 +1186,7 @@ drawbar(Monitor *m) {
             s = a;
          snprintf(posbuf, LENGTH(posbuf), "[%d/%d]", s, a);
          dc.w = TEXTW(posbuf);
-         col = dc.colors[0];
-         drawtext(posbuf, col , True);
+         drawtext(posbuf, 6, True);
          x = dc.x + dc.w;
       }
    }
@@ -983,7 +1218,7 @@ drawbar(Monitor *m) {
    firstvis = c;
 
    // col = m == selmon ? dc.sel : dc.norm;
-   col = m == selmon ? dc.colors[7] : dc.colors[0];
+   col = 7;
    dc.w = dc.x - x;
    dc.x = x;
    if(n > 0) {
@@ -1016,7 +1251,7 @@ drawbar(Monitor *m) {
          if(m->sel == c) seldc = dc;
          if(c == lastvis) dc.w = ow;
 
-         drawtext(c->name, dc.colors[0], True);
+         drawtext(c->name, 6, True);
 
          if(c != firstvis)
             drawvline(col);
@@ -1030,17 +1265,15 @@ drawbar(Monitor *m) {
 
          for(c = c->next; c && (!ISVISIBLE(c) || c->iswidget); c = c->next);
       } else {
-         drawtext(NULL, dc.colors[0] , True);
+         drawtext(NULL, 0, True);
          break;
       }
    }
 
    if(m == selmon && m->sel && ISVISIBLE(m->sel) && !m->sel->iswidget) {
       dc = seldc;
-      col = dc.colors[1];
       sel_win = True;
-      drawtext(m->sel->name, col, True);
-
+      drawtext(m->sel->name, 5, True);
       drawsquare(m->sel->isfixed, m->sel->isfloating, True, col);
 
       sel_win = False;
@@ -1060,10 +1293,10 @@ drawbars(void) {
 }
 
 void
-drawvline(unsigned long col[ColLast]) {
+drawvline(size_t col_index) {
    XGCValues gcv;
 
-   gcv.foreground = col[ColFG];
+   gcv.foreground = dc.colors[col_index][ColFG];
    XChangeGC(dpy, dc.gc, GCForeground, &gcv);
    // XDrawLine(dpy, dc.drawable, dc.gc, dc.x, dc.y, dc.x, dc.y + (dc.font.ascent + dc.font.descent + 2));
    XDrawLine(dpy, dc.drawable, dc.gc, dc.x, dc.y + 3 , dc.x, dc.y + bh - 3);
@@ -1074,7 +1307,7 @@ drawvline(unsigned long col[ColLast]) {
 void
 drawcoloredtext(char *text) {
    char *buf = text, *ptr = buf, c = 1;
-   unsigned long *col = dc.colors[0];
+   size_t col = 0;
    int i, ox = dc.x;
 
    while( *ptr ) {
@@ -1088,7 +1321,7 @@ drawcoloredtext(char *text) {
          dc.x += textnw(buf, i);
       }
       *ptr = c;
-      col = dc.colors[ c-1 ];
+      col = c-1;
       buf = ++ptr;
    }
    drawtext(buf, col, False);
@@ -1096,12 +1329,12 @@ drawcoloredtext(char *text) {
 }
 
 /*void
-  drawsquare(Bool filled, Bool empty, unsigned long col[ColLast]) {
+  drawsquare(Bool filled, Bool empty, size_t col_index) {
   int x;
   XGCValues gcv;
   XRectangle r = { dc.x, dc.y, dc.w, dc.h };
 
-  gcv.foreground = col[ColFG];
+  gcv.foreground = dc.colors[col_index][ColFG];
   XChangeGC(dpy, dc.gc, GCForeground, &gcv);
   x = (dc.font.ascent + dc.font.descent + 2) / 4;
   r.x = dc.x + 1;
@@ -1117,15 +1350,15 @@ drawcoloredtext(char *text) {
   }*/
 
 void
-drawsquare(Bool filled, Bool empty, Bool invert, unsigned long col[ColLast]) {
+drawsquare(Bool filled, Bool empty, Bool invert, size_t col_index) {
    int x;
    XGCValues gcv;
    XRectangle r = { dc.x, dc.y, dc.w, dc.h };
 
-   gcv.foreground = col[invert ? ColBG : ColFG];
+   gcv.foreground = dc.colors[col_index][invert ? ColBG : ColFG];
    XChangeGC(dpy, dc.gc, GCForeground, &gcv);
    x = (dc.font.ascent + dc.font.descent + 2) / 4;
-   if(istitledraw)//绘制标题上面的小正方形
+   if(istitledraw)
       r.x = dc.x + 3;
    else
       r.x = dc.x + 1;
@@ -1141,18 +1374,18 @@ drawsquare(Bool filled, Bool empty, Bool invert, unsigned long col[ColLast]) {
 }
 
 void
-drawtext(const char *text, unsigned long col[ColLast], Bool pad) {
+drawtext(const char *text, size_t col_index, Bool pad) {
    char buf[256];
    int i, p, x, y, h, len, olen;
 
-   if(sel_win) //当前窗口被选择
+   if(sel_win)
    {
       dc.x = dc.x + 3;
       dc.w = dc.w - 5;
    }
 
    XRectangle r = { dc.x , dc.y, dc.w , dc.h };
-   XSetForeground(dpy, dc.gc, col[ColBG]);
+   XSetForeground(dpy, dc.gc, dc.colors[col_index][ColBG]);
    XFillRectangles(dpy, dc.drawable, dc.gc, &r, 1);
    if(!text)
       return;
@@ -1190,11 +1423,11 @@ drawtext(const char *text, unsigned long col[ColLast], Bool pad) {
 
 #ifdef XFT
    pango_layout_set_text(dc.plo, buf, len);
-   pango_xft_render_layout(dc.xftdrawable, (col==dc.colors[0]?dc.xftcolors[0]:dc.xftcolors[1])+(ColFG), dc.plo, x * PANGO_SCALE, y * PANGO_SCALE);
+   pango_xft_render_layout(dc.xftdrawable, &dc.xftcolors[col_index][ColFG], dc.plo, x * PANGO_SCALE, y * PANGO_SCALE);
 #else
    if(len < olen)
       for(i = len; i && i > len - 3; buf[--i] = '.');
-   XSetForeground(dpy, dc.gc, col[ColFG]);
+   XSetForeground(dpy, dc.gc, dc.colors[col_index][ColFG]);
    if(dc.font.set)
       XmbDrawString(dpy, dc.drawable, dc.font.set, dc.gc, x, y, buf, len);
    else
@@ -1235,7 +1468,14 @@ enternotify(XEvent *e) {
 void
 motionnotify(XEvent *e) {
    Monitor *m;
+   menu_t  *mm;
    XMotionEvent *ev = &e->xmotion;
+
+   if( (mm = wintomenu(ev->window)) )
+   {
+      updatemenu(mm, ev->x, ev->y);
+      return;
+   }
 
    if(!autofocusmonitor)
       return;
@@ -1774,6 +2014,8 @@ movemouse(const Arg *arg) {
    }
    c->isfloating = True;
    arrange(c->mon);
+   unfocus(c, True);
+   focus(c);
 
    if(!c->isbelow) XRaiseWindow(dpy, c->win);
    do {
@@ -2001,6 +2243,10 @@ resizemouse(const Arg *arg) {
    c->isfloating = True;
    resizeclient(c, c->x, c->y, c->fw, c->fh);
    arrange(c->mon);
+   unfocus(c, True);
+   focus(c);
+
+   if(!c->isbelow) XRaiseWindow( dpy, c->win );
    XWarpPointer(dpy, None, c->win, 0, 0, 0, 0, c->w + c->bw - 1, c->h + c->bw - 1);
    do {
       XMaskEvent(dpy, MOUSEMASK|ExposureMask|SubstructureRedirectMask, &ev);
@@ -2233,10 +2479,8 @@ setup(void) {
    netatom[KdeWMSysTrayWindow] = XInternAtom(dpy, "_KDE_NET_WM_SYSTEM_TRAY_WINDOW_FOR", False);
 
    /* Sys tray atom */
-   Screen *screenx = XDefaultScreenOfDisplay(dpy);
-   int iScreen = XScreenNumberOfScreen(screenx);
    char systray_atom[48];
-   snprintf(systray_atom, sizeof(systray_atom), "_NET_SYSTEM_TRAY_S%d", iScreen/*SCREEN*/);
+   snprintf(systray_atom, sizeof(systray_atom), "_NET_SYSTEM_TRAY_S%d", PRIMARY_MONITOR );
    netatom[NetSystemTray] = ATOM(systray_atom);
 
    /* init cursors */
@@ -2252,9 +2496,9 @@ setup(void) {
    }
 #else
    for(int i=0; i<NUMCOLORS; i++) {
-      dc.colors[i][ColBorder] = getcolor( colors[i][ColBorder], dc.xftcolors[i]+ColBorder );
-      dc.colors[i][ColFG] = getcolor( colors[i][ColFG], dc.xftcolors[i]+ColFG );
-      dc.colors[i][ColBG] = getcolor( colors[i][ColBG], dc.xftcolors[i]+ColBG );
+      dc.colors[i][ColBorder] = getcolor( colors[i][ColBorder], &dc.xftcolors[i][ColBorder] );
+      dc.colors[i][ColFG] = getcolor( colors[i][ColFG], &dc.xftcolors[i][ColFG] );
+      dc.colors[i][ColBG] = getcolor( colors[i][ColBG], &dc.xftcolors[i][ColBG] );
    }
 #endif
    dc.drawable = XCreatePixmap(dpy, root, DisplayWidth(dpy, screen), bh, DefaultDepth(dpy, screen));
@@ -3439,7 +3683,7 @@ void launcher(const Arg *arg){
 
    XGrabKeyboard(dpy, ROOT, True, GrabModeAsync, GrabModeAsync, CurrentTime);
 
-   drawtext(prompt, dc.colors[7], False);
+   drawtext(prompt, 7, False);
    dc.x += TEXTW(prompt);
    XDrawLine(dpy, dc.drawable, dc.gc, dc.x, 3, dc.x, bh-3);
 
@@ -3466,7 +3710,7 @@ void launcher(const Arg *arg){
                ++pos;
                break;
          }
-         drawtext(buf, dc.colors[7], False);
+         drawtext(buf, 7, False);
          XDrawLine(dpy, dc.drawable, dc.gc, dc.x+TEXTW(buf), 3, dc.x+TEXTW(buf), bh-3);
 
          XCopyArea(dpy, dc.drawable, selmon->barwin, dc.gc, dc.x, 0, dc.w-TEXTW(prompt), bh, dc.x, 0);
