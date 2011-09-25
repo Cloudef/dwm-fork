@@ -201,9 +201,8 @@ typedef struct menu_t {
    Window win;
    int x, y, w, h;
    Drawable drawable;
-   struct menu_t  *next;
-   const struct menuCtx *ctx;
-   const struct menuCtx *sel;
+   struct menu_t  *next, *child;
+   const struct menuCtx *ctx, *sel;
 } menu_t;
 menu_t *menu  = NULL;
 
@@ -241,7 +240,6 @@ static void           drawsquare(Bool filled, Bool empty, Bool invert, size_t co
 static void           drawtext(const char *text, size_t col_index, Bool pad);
 // static void         drawtext(const char *text, unsigned long col[ColLast], Bool invert, Bool pad);
 static void           enternotify(XEvent *e);
-static void           leavenotify(XEvent *e);
 static void           motionnotify(XEvent *e);
 static void           expose(XEvent *e);
 static void           focus(Client *c);
@@ -364,7 +362,6 @@ static void (*handler[LASTEvent]) (XEvent *) = {
    [ConfigureNotify]          = configurenotify,
    [DestroyNotify]            = destroynotify,
    [EnterNotify]              = enternotify,
-   [LeaveNotify]              = leavenotify,
    [MotionNotify]             = motionnotify,
    [Expose]                   = expose,
    [FocusIn]                  = focusin,
@@ -590,7 +587,7 @@ prevlayout(const Arg *arg) {
       setlayout(&((Arg) { .v = &layouts[LENGTH(layouts) - 2] }));
 }
 
-static void openmenupos( const menuCtx *ctx, int x, int y );
+static menu_t* openmenupos( const menuCtx *ctx, int x, int y );
 static void closemenu( menu_t *target );
 static void
 updatemenu( menu_t *m, int x, int y ) {
@@ -631,11 +628,12 @@ updatemenu( menu_t *m, int x, int y ) {
 #endif
 
    if(m->sel && m->sel != osel)
+   {
+      if(m->child) { closemenu(m->child); m->child = NULL; }
       if(m->sel->ctx != NULL)
-      {
-         if(m->next) closemenu(m->next);
-         openmenupos( m->sel->ctx, m->x + m->w, m->y + sely );
-      }
+         m->child = openmenupos( m->sel->ctx, m->x + m->w, m->y + sely );
+   }
+
 }
 
 menu_t*
@@ -673,6 +671,7 @@ createmenu( menu_t *m, const menuCtx *ctx, int x, int y ) {
    m->h    = 0;
    m->ctx  = ctx;
    m->sel  = NULL;
+   m->child= NULL;
 
    for(i = 0; m->ctx[i].title; ++i)
    {
@@ -703,7 +702,7 @@ createmenu( menu_t *m, const menuCtx *ctx, int x, int y ) {
    return(0);
 }
 
-static void
+static menu_t*
 openmenupos( const menuCtx *ctx, int x, int y ) {
    menu_t **m, *mm;
 
@@ -714,18 +713,20 @@ openmenupos( const menuCtx *ctx, int x, int y ) {
 
    *m = calloc(1, sizeof(menu_t));
    if(!*m)
-      return;
+      return NULL;
 
    (*m)->next = NULL;
    if(createmenu(*m, ctx, x, y) == -1)
    { free(*m); *m = NULL; }
+
+   return *m;
 }
 
-static void
+static menu_t*
 openmenu( const menuCtx *ctx ) {
    int x, y;
    getrootptr( &x, &y );
-   openmenupos( ctx, x, y );
+   return openmenupos( ctx, x, y );
 }
 
 static void
@@ -735,8 +736,17 @@ closemenu( menu_t *target )
 
    if(!target) return;
 
+   /* this is not valid child anymore */
+   for( mm = menu; mm; mm = mm->next )
+      if(mm->child == target) mm->child = NULL;
+
+   /* close childs */
+   for( mm = target->child; mm; mm = mm->child )
+      closemenu( mm );
+
+   /* remove */
    m = &menu;
-   for( mm = menu; mm->next && mm->next != target; mm = mm->next )
+   for( mm = menu; mm && mm->next && mm->next != target; mm = mm->next )
       m = &mm;
 
    (*m)->next = target->next;
@@ -784,18 +794,6 @@ buttonmenu( menu_t *m, int x, int y )
 }
 
 void
-leavenotify(XEvent *e) {
-   menu_t *mm;
-   XCrossingEvent *ev = &e->xcrossing;
-
-   if((mm = wintomenu(ev->window)))
-   {
-      if(!mm->next) closemenu(mm);
-      return;
-   }
-}
-
-void
 buttonpress(XEvent *e) {
    unsigned int i, x, click;
    Arg arg = {0};
@@ -813,9 +811,9 @@ buttonpress(XEvent *e) {
          buttonmenu(mm, ev->x, ev->y);
          return;
       }
+      if(menu)
+         closemenus();
    }
-   if(menu)
-      closemenus();
 
    if(!autofocusmonitor)
    {

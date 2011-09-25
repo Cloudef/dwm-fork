@@ -4,7 +4,6 @@
 
 /* appearance */
 static const char font[] = "erusfont 7";
-
 #define NUMCOLORS 8
 
 /*   border,   foreground ,background */
@@ -105,19 +104,26 @@ static const Layout layouts[]  = {
 };
 
 /* key definitions */
-#define MODKEY Mod4Mask
-#define ALTKEY Mod1Mask
+#define MODKEY  Mod4Mask
+#define CTRLKEY ControlMask
+#define ALTKEY  Mod1Mask
 #define TAGKEYS(KEY,TAG) \
         { MODKEY,                       KEY,      view,           {.ui = 1 << TAG} }, \
         { MODKEY|ControlMask,           KEY,      toggleview,     {.ui = 1 << TAG} }, \
         { MODKEY|ShiftMask,             KEY,      tag,            {.ui = 1 << TAG} }, \
         { MODKEY|ControlMask|ShiftMask, KEY,      toggletag,      {.ui = 1 << TAG} },
 
-/* helper for spawning shell commands in the pre dwm-5.0 fashion */
-#define SHCMD(cmd) { .v = (const char*[]){ "/bin/sh", "-c", cmd, NULL } }
+/* helper defines */
+#define FILEMANAGER     "thunar"
+#define HOME            "/home/jari"
+#define GAMES           "/media/Storage/Pelit"
+#define EMUS            "/media/Storage/Emulaattorit"
+#define THDIR           GAMES"/Touhou"
+#define THCMD(exe)      { .v = (const char*[]){ "pikakuvake", THDIR"/"exe, NULL } }
+#define FM(path)        { .v = (const char*[]){ FILEMANAGER, path, NULL } }
+
+#define SHCMD(cmd)      { .v = (const char*[]){ "/bin/sh", "-c", cmd, NULL } }
 #define pikakuvake(cmd) { .v = (const char*[]){ "pikakuvake", cmd, NULL } }
-#define THDIR "/media/Storage/Pelit/Touhou"
-#define THCMD(exe) { .v = (const char*[]){ "pikakuvake", THDIR"/"exe, NULL } }
 
 /* commands */
 static const char *dmenucmd[]    = { "dmenu_run" , "-p" , "Run:" , "-fn", font, "-nb", colors[0][ColBG], "-nf", colors[0][ColFG], "-sb", colors[1][ColBG], "-sf", colors[1][ColFG], NULL };
@@ -129,8 +135,19 @@ static const char *kupfer[]      = { "kupfer",           NULL };
 static const char *oblogout[]    = { "oblogout",         NULL };
 static const char *prnt[]        = { "scrot",            NULL };
 static const char *opera[]       = { "opera",            NULL };
+static const char *nitrogen[]    = { "nitrogen",         NULL };
+static const char *urxvtq[]      = { "URXVTQ",           NULL };
+static const char *irc[]         = { "IRC",              NULL };
+static const char *msn[]         = { "MSN",              NULL };
+static const char *torrent[]     = { "TORRENT",          NULL };
+static const char *rss[]         = { "RSS",              NULL };
+static const char *comix[]       = { "comix",            NULL };
+static const char *deadbeef[]    = { "deadbeef",         NULL };
+static const char *mame[]        = { "sdlmame",          NULL };
+static const char *gvbam[]       = { "gvbam",            NULL };
 
 #define MENUEND { NULL, NULL, NULL, {0} }
+#define MENUSEP(x) { x, NULL, NULL, {0} }
 static const menuCtx touhouMenu[] = {
    { "TH06 Embodiment of Scarlet Devil",     NULL, spawn, THCMD("TH06/th06e.exe") },
    { "TH07 Perfect Cherry Blossom",          NULL, spawn, THCMD("TH07/th07e.exe") },
@@ -146,25 +163,83 @@ static const menuCtx touhouMenu[] = {
    { "TH12.5 Double Spoiler",                NULL, spawn, THCMD("TH12.5/th125e.exe") },
    { "TH12.8 Fairy Wars",                    NULL, spawn, THCMD("TH12.8/th128e.exe") },
    { "TH13 Ten Desires",                     NULL, spawn, THCMD("TH13/th13.exe") },
+   MENUSEP("-----------------------------------"),
+   { "Doujin                            +",  NULL, spawn, FM(THDIR"/Doujin") },
    MENUEND,
 };
 
 static const menuCtx internetMenu[] = {
-   { "Opera        ", NULL, spawn, {.v = opera } },
+   { "Opera",     NULL, spawn, {.v = opera } },
+   MENUSEP("--------"),
+   { "rTorrent",  NULL, spawn, {.v = torrent } },
+   MENUSEP("--------"),
+   { "IRC",       NULL, spawn, {.v = irc } },
+   { "MSN",       NULL, spawn, {.v = msn   } },
+   MENUSEP("--------"),
+   { "RSS",       NULL, spawn, {.v = rss } },
    MENUEND,
 };
 
 static const menuCtx gameMenu[] = {
-   { "Touhou      >", &touhouMenu[0], NULL, {0} },
-   { "-------------", NULL, NULL, {0} },
-   { "Last Remannt ", NULL, spawn,
-      pikakuvake("/home/jari/.wine/drive_c/Program Files/The Last Remnant/Binaries/TLR.exe") },
+   { "Touhou                >", &touhouMenu[0], NULL, {0} },
+   { "Eroge                 +", NULL, spawn,
+   FM("/media/Storage/Bishoujo Pelit") },
+   MENUSEP("-----------------------"),
+   { "Cave Story", NULL, spawn,
+   pikakuvake(GAMES"/CaveStory/doukutsu") },
+   { "Last Remnant", NULL, spawn,
+   pikakuvake(HOME"/.wine/drive_c/Program Files/The Last Remnant/Binaries/TLR.exe") },
+   { "ALLTYNEX Second", NULL, spawn,
+   pikakuvake(GAMES"/ALLTYNEX Second/alltynex2nd.exe") },
+   { "RefRain", NULL, spawn,
+   pikakuvake(GAMES"/RefRain/runGame.sh") },
+   { "Edens Aegis", NULL, spawn,
+   pikakuvake(GAMES"/Edens Aegis/EdensAegis.run") },
+   { "osu!", NULL, spawn,
+   pikakuvake(GAMES"/osu!/osu!.exe") },
+   MENUSEP("-----------------------"),
+   { "Grand Fantasia", NULL, spawn,
+   pikakuvake(HOME"/.wine/drive_c/AeriaGames/GrandFantasia/runGame.sh") },
+   MENUSEP("-----------------------"),
+   { "Ys The Ark of Napishtim", NULL, spawn,
+   pikakuvake(GAMES"/Ys The Ark of Napishtim/ys6_win_dx9.exe") },
+   { "Ys The Oath in Felghana", NULL, spawn,
+   pikakuvake(GAMES"/Ys The Oath in Felghana/ysf_win_dx9.exe") },
+   { "Ys Origins", NULL, spawn,
+   pikakuvake(GAMES"/Ys Origins/origins.exe") },
+   MENUSEP("-----------------------"),
+   { "Sora no Kiseki", NULL, spawn,
+   pikakuvake(GAMES"/Eiyuu Densetsu - Sora no Kiskei/ED6_WIN.run") },
+   { "Sora no Kiseki SC", NULL, spawn,
+   pikakuvake(GAMES"/Eiyuu Densetsu - Sora no Kiskei SC/ED6_WIN2.run") },
+   { "Sora no Kiseki TC", NULL, spawn,
+   pikakuvake(GAMES"/Eiyuu Densetsu - Sora no Kiskei TC/ED6_WIN3.run") },
+   MENUSEP("-----------------------"),
+   { "MAME", NULL, spawn, {.v = mame } },
+   { "NO$GBA", NULL, spawn,
+   pikakuvake(EMUS"/NoGBA/NO$Zoomer.exe") },
+   { "VBA-M", NULL, spawn, {.v = gvbam } },
+   MENUSEP("-----------------------"),
+   { "Steam", NULL, spawn,
+   pikakuvake(HOME"/.wine/drive_c/Program Files/Steam/Steam.exe") },
+   MENUEND,
+};
+
+static const menuCtx archMenu[] = {
+   { "Nitrogen", NULL, spawn, {.v = nitrogen} },
+   MENUSEP("--------"),
+   { "Exit", NULL, spawn, {.v = oblogout} },
    MENUEND,
 };
 
 static const menuCtx rootMenu[] = {
+   { "Music", NULL,  spawn, {.v = deadbeef } },
+   { "Manga", NULL,  spawn, {.v = comix } },
+   MENUSEP("-------------"),
    { "Internet    >", &internetMenu[0],   NULL, {0} },
    { "Games       >", &gameMenu[0],       NULL, {0} },
+   MENUSEP("-------------"),
+   { "ArchLinux   >", &archMenu[0],       NULL, {0} },
    MENUEND,
 };
 
@@ -174,7 +249,7 @@ static Key keys[] = {
    { 0,                            0x1008ff13,        spawn,            {.v = dvolplus  } },
    { 0,                            0x1008ff12,        spawn,            {.v = dvolmute  } },
    { 0,                            0x1008ff30,        spawn,            {.v = termcmd   } },
-   { 0,                            XK_section,        spawn,            SHCMD("$HOME/.config/dwm/urxvtq") },
+   { 0,                            XK_section,        spawn,            {.v = urxvtq } },
    { 0,                            XK_Print,          spawn,            {.v = prnt } },
    { ALTKEY,                       XK_Print,          spawn,            SHCMD("import $HOME/dwm-$(date +'%H:%M-%d-%m-%Y').png") },
    { MODKEY,                       XK_p,              spawn,            {.v = dmenucmd } },
@@ -205,6 +280,7 @@ static Key keys[] = {
    { MODKEY,                       XK_KP_Right,       focusstack,       {.i = +1} },
    { MODKEY,                       XK_KP_Page_Down,   togglelayout,     {.v = &layouts[5]} },
    { MODKEY,                       XK_F12,            togglefullscreen, {0} },
+   { CTRLKEY,                      XK_space,          togglemenu,       {0} },
    TAGKEYS(                        XK_1,                      0)
    TAGKEYS(                        XK_2,                      1)
    TAGKEYS(                        XK_3,                      2)
@@ -228,6 +304,7 @@ static Button buttons[] = {
    { ClkWinTitle,          0,              Button1,        focusonclick,   {0} },
    { ClkWinTitle,          0,              Button3,        closeonclick,   {0} },
    { ClkStatusText,        0,              Button2,        spawn,          {.v = termcmd } },
+   { ClkStatusText,        0,              Button3,        togglemenu,     {0} },
    { ClkClientWin,         ALTKEY,         Button1,        movemouse,      {0} },
    { ClkClientWin,         ALTKEY,         Button2,        zoom,           {0} },
    { ClkClientWin,         MODKEY,         Button2,        zoom,           {0} },
