@@ -2,18 +2,18 @@
 
 /* appearance */
 static const char font[] = "erusfont 7";
-#define NUMCOLORS 8
 
 /*   border,   foreground ,background */
-static const char colors[NUMCOLORS][ColLast][8] = {
-   { "#010101", "#ffffff", "#121212" }, // 0 = Normal tag
-   { "#212121", "#262173", "#e6a9f2" }, // 1 = Selected tag
-   { "#212121", "#040404", "#ea0d05" }, // 2 = Urgent tag
+static const char colors[MAXCOLORS][ColLast][8] = {
+   { "#010101", "#B7CE42", "#1C1C1C" }, // 0 = Normal tag
+   { "#212121", "#FEA63C", "#D81860" }, // 1 = Selected tag
+   { "#212121", "#66AABB", "#D81860" }, // 2 = Urgent tag
    { "#ffffff", "#ffffff", "#414141" }, // 3 = Unselected tag with windows
-   { "#ffffff", "#ffffff", "#462173" }, // 4 = Layout
-   { "#212121", "#262173", "#e6a9f2" }, // 5 = Selected window
-   { "#ffffff", "#cccccc", "#313131" }, // 6 = Unselected window
+   { "#ffffff", "#FEA63C", "#1C1C1C" }, // 4 = Layout
+   { "#212121", "#FEA63C", "#D81860" }, // 5 = Selected window
+   { "#ffffff", "#D81860", "#414141" }, // 6 = Unselected window
    { "#ffffff", "#cc3300", "#dddddd" }, // 7 = Window pager text
+   { "#cacaca", "#cacaca", "#414141" }, // 8 = Status bar
 };
 
 static const unsigned int borderpx  = 1;        /* border pixel of windows */
@@ -89,16 +89,24 @@ static const Bool resizehints = True; /* True means respect size hints in tiled 
 /* num of masters */
 static const int nmaster = 2;
 
+/* PATHS */
+#define FILEMANAGER     "thunar"
+#define HOME            "/home/jari"
+#define GAMES           "/media/Storage/Pelit"
+#define EMUS            "/media/Storage/Emulaattorit"
+#define ICONS           HOME"/.icons/dwm"
+#define THDIR           GAMES"/Touhou"
+
 /* layouts */
 static const Layout layouts[]  = {
-    /* symbol     arrange function */
-    { "TI",      tile },
-    { "BH",      bstackhoriz },
-    { "GR" ,     grid },
-    { "BS" ,     bstack },
-    { "FL",      NULL },
-    { "M",       monocle },
-    { .symbol = NULL, .arrange = NULL },
+    /* icon (optional),  symbol     arrange function */
+    { ICONS"/tile.xbm",    "TI",      tile },
+    { ICONS"/bhoriz.xbm",  "BH",      bstackhoriz },
+    { ICONS"/grid.xbm",    "GR" ,     grid },
+    { ICONS"/bstack.xbm",  "BS" ,     bstack },
+    { ICONS"/float.xbm",   "FL",      NULL },
+    { ICONS"/monocle.xbm", "M",       monocle },
+    { NULL, NULL,  NULL },
 };
 
 /* key definitions */
@@ -112,11 +120,6 @@ static const Layout layouts[]  = {
         { MODKEY|ControlMask|ShiftMask, KEY,      toggletag,      {.ui = 1 << TAG} },
 
 /* helper defines */
-#define FILEMANAGER     "thunar"
-#define HOME            "/home/jari"
-#define GAMES           "/media/Storage/Pelit"
-#define EMUS            "/media/Storage/Emulaattorit"
-#define THDIR           GAMES"/Touhou"
 #define THCMD(exe)      { .v = (const char*[]){ "pikakuvake", THDIR"/"exe, NULL } }
 #define FM(path)        { .v = (const char*[]){ FILEMANAGER, path, NULL } }
 
@@ -148,34 +151,34 @@ static const char *gvbam[]       = { "gvbam",            NULL };
 #define MENUEND { NULL, NULL, NULL, {0} }
 #define MENUSEP(x) { x, NULL, NULL, {0} }
 static const menuCtx touhouMenu[] = {
-   { "TH06 Embodiment of Scarlet Devil",     NULL, spawn, THCMD("TH06/th06e.exe") },
-   { "TH07 Perfect Cherry Blossom",          NULL, spawn, THCMD("TH07/th07e.exe") },
+   { "TH06 Embodiment of Scarlet Devil   ",  NULL, spawn, THCMD("TH06/th06e.exe") },
+   { "TH07 Perfect Cherry Blossom        ",  NULL, spawn, THCMD("TH07/th07e.exe") },
    { "TH07.5 Immaterial and Missing Power",  NULL, spawn, THCMD("TH07.5/th075e.exe") },
-   { "TH08 Imperishable Night",              NULL, spawn, THCMD("TH08/th08.exe") },
-   { "TH09 Phantasmagoria of Flower View",   NULL, spawn, THCMD("TH09/th09e.exe") },
-   { "TH09.5 Shoot the Bullet",              NULL, spawn, THCMD("TH09.5/th095.exe") },
-   { "TH10 Mountain of Faith",               NULL, spawn, THCMD("TH10/th10e.exe") },
-   { "TH10.5 Scarlet Weather Rhapsody",      NULL, spawn, THCMD("TH10.5/th105e.exe") },
-   { "TH11 Subterranean Animism",            NULL, spawn, THCMD("TH11/th11e.exe") },
-   { "TH12 Undefined Fantastic Object",      NULL, spawn, THCMD("TH12/th12e.exe") },
-   { "TH12.3 Touhou Hisoutensoku",           NULL, spawn, THCMD("TH12.3/th123e.exe") },
-   { "TH12.5 Double Spoiler",                NULL, spawn, THCMD("TH12.5/th125e.exe") },
-   { "TH12.8 Fairy Wars",                    NULL, spawn, THCMD("TH12.8/th128e.exe") },
-   { "TH13 Ten Desires",                     NULL, spawn, THCMD("TH13/th13.exe") },
+   { "TH08 Imperishable Night            ",  NULL, spawn, THCMD("TH08/th08.exe") },
+   { "TH09 Phantasmagoria of Flower View ",  NULL, spawn, THCMD("TH09/th09e.exe") },
+   { "TH09.5 Shoot the Bullet            ",  NULL, spawn, THCMD("TH09.5/th095.exe") },
+   { "TH10 Mountain of Faith             ",  NULL, spawn, THCMD("TH10/th10e.exe") },
+   { "TH10.5 Scarlet Weather Rhapsody    ",  NULL, spawn, THCMD("TH10.5/th105e.exe") },
+   { "TH11 Subterranean Animism          ",  NULL, spawn, THCMD("TH11/th11e.exe") },
+   { "TH12 Undefined Fantastic Object    ",  NULL, spawn, THCMD("TH12/th12e.exe") },
+   { "TH12.3 Touhou Hisoutensoku         ",  NULL, spawn, THCMD("TH12.3/th123e.exe") },
+   { "TH12.5 Double Spoiler              ",  NULL, spawn, THCMD("TH12.5/th125e.exe") },
+   { "TH12.8 Fairy Wars                  ",  NULL, spawn, THCMD("TH12.8/th128e.exe") },
+   { "TH13 Ten Desires                   ",  NULL, spawn, THCMD("TH13/th13.exe") },
    MENUSEP("-----------------------------------"),
    { "Doujin                            +",  NULL, spawn, FM(THDIR"/Doujin") },
    MENUEND,
 };
 
 static const menuCtx internetMenu[] = {
-   { "Opera",     NULL, spawn, {.v = opera } },
+   { "Opera   ",  NULL, spawn, {.v = opera } },
    MENUSEP("--------"),
    { "rTorrent",  NULL, spawn, {.v = torrent } },
    MENUSEP("--------"),
-   { "IRC",       NULL, spawn, {.v = irc } },
-   { "MSN",       NULL, spawn, {.v = msn   } },
+   { "IRC     ",  NULL, spawn, {.v = irc } },
+   { "MSN     ",  NULL, spawn, {.v = msn   } },
    MENUSEP("--------"),
-   { "RSS",       NULL, spawn, {.v = rss } },
+   { "RSS     ",  NULL, spawn, {.v = rss } },
    MENUEND,
 };
 
@@ -184,42 +187,42 @@ static const menuCtx gameMenu[] = {
    { "Eroge                 +", NULL, spawn,
    FM("/media/Storage/Bishoujo Pelit") },
    MENUSEP("-----------------------"),
-   { "Cave Story", NULL, spawn,
+   { "Cave Story             ", NULL, spawn,
    pikakuvake(GAMES"/CaveStory/doukutsu") },
-   { "Last Remnant", NULL, spawn,
+   { "Last Remnant           ", NULL, spawn,
    pikakuvake(HOME"/.wine/drive_c/Program Files/The Last Remnant/Binaries/TLR.exe") },
-   { "ALLTYNEX Second", NULL, spawn,
+   { "ALLTYNEX Second        ", NULL, spawn,
    pikakuvake(GAMES"/ALLTYNEX Second/alltynex2nd.exe") },
-   { "RefRain", NULL, spawn,
+   { "RefRain                ", NULL, spawn,
    pikakuvake(GAMES"/RefRain/runGame.sh") },
-   { "Edens Aegis", NULL, spawn,
+   { "Edens Aegis            ", NULL, spawn,
    pikakuvake(GAMES"/Edens Aegis/EdensAegis.run") },
-   { "osu!", NULL, spawn,
-   pikakuvake(GAMES"/osu!/osu!.exe") },
    MENUSEP("-----------------------"),
-   { "Grand Fantasia", NULL, spawn,
+   { "Grand Fantasia         ", NULL, spawn,
    pikakuvake(HOME"/.wine/drive_c/AeriaGames/GrandFantasia/runGame.sh") },
+   { "Spiral Knights         ", NULL, spawn,
+   pikakuvake(HOME"/spiral/spiral") },
    MENUSEP("-----------------------"),
    { "Ys The Ark of Napishtim", NULL, spawn,
    pikakuvake(GAMES"/Ys The Ark of Napishtim/ys6_win_dx9.exe") },
    { "Ys The Oath in Felghana", NULL, spawn,
    pikakuvake(GAMES"/Ys The Oath in Felghana/ysf_win_dx9.exe") },
-   { "Ys Origins", NULL, spawn,
-   pikakuvake(GAMES"/Ys Origins/origins.exe") },
+   { "Ys Origins             ", NULL, spawn,
+   pikakuvake(GAMES"/Ys Origins/YSO_WIN.exe") },
    MENUSEP("-----------------------"),
-   { "Sora no Kiseki", NULL, spawn,
+   { "Sora no Kiseki         ", NULL, spawn,
    pikakuvake(GAMES"/Eiyuu Densetsu - Sora no Kiseki/ED6_WIN.run") },
-   { "Sora no Kiseki SC", NULL, spawn,
+   { "Sora no Kiseki SC      ", NULL, spawn,
    pikakuvake(GAMES"/Eiyuu Densetsu - Sora no Kiseki SC/ED6_WIN2.run") },
-   { "Sora no Kiseki TC", NULL, spawn,
+   { "Sora no Kiseki TC      ", NULL, spawn,
    pikakuvake(GAMES"/Eiyuu Densetsu - Sora no Kiseki TC/ED6_WIN3.run") },
    MENUSEP("-----------------------"),
-   { "MAME", NULL, spawn, {.v = mame } },
-   { "NO$GBA", NULL, spawn,
-   pikakuvake(EMUS"/NoGBA/NO$Zoomer.exe") },
-   { "VBA-M", NULL, spawn, {.v = gvbam } },
+   { "MAME                   ", NULL, spawn, {.v = mame } },
+   { "NO$GBA                 ", NULL, spawn,
+   pikakuvake(EMUS"/NoGBA/NO$GBA.exe") },
+   { "VBA-M                  ", NULL, spawn, {.v = gvbam } },
    MENUSEP("-----------------------"),
-   { "Steam", NULL, spawn,
+   { "Steam                  ", NULL, spawn,
    pikakuvake(HOME"/.wine/drive_c/Program Files/Steam/Steam.exe") },
    MENUEND,
 };
@@ -227,13 +230,13 @@ static const menuCtx gameMenu[] = {
 static const menuCtx archMenu[] = {
    { "Nitrogen", NULL, spawn, {.v = nitrogen} },
    MENUSEP("--------"),
-   { "Exit", NULL, spawn, {.v = oblogout} },
+   { "Exit    ", NULL, spawn, {.v = oblogout} },
    MENUEND,
 };
 
 static const menuCtx rootMenu[] = {
-   { "Music", NULL,  spawn, {.v = deadbeef } },
-   { "Manga", NULL,  spawn, {.v = comix } },
+   { "Music        ", NULL,  spawn, {.v = deadbeef } },
+   { "Manga        ", NULL,  spawn, {.v = comix } },
    MENUSEP("-------------"),
    { "Internet    >", &internetMenu[0],   NULL, {0} },
    { "Games       >", &gameMenu[0],       NULL, {0} },

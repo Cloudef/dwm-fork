@@ -20,5 +20,5 @@ xeyes &
 while kill -0 $PPID; do sleep 10; done
 
 # Exit
-# If you get any zombies, kill them here
+# If you get any processes that run even after log out, kill them here
 # eg. killall redshift

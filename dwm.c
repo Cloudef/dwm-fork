@@ -40,7 +40,7 @@
 #define MIN(A, B)               ((A) < (B) ? (A) : (B))
 #endif
 
-#define MAXCOLORS               8 // avoid circular reference to NUMCOLORS
+#define MAXCOLORS               9
 #define MOUSEMASK               (BUTTONMASK|PointerMotionMask)
 #define WIDTH(X)                ((X)->w + 2 * (X)->bw)
 #define HEIGHT(X)               ((X)->h + 2 * (X)->bw)
@@ -129,6 +129,7 @@ typedef struct {
 } Key;
 
 typedef struct {
+   const char *icon;
    const char *symbol;
    void (*arrange)(Monitor *);
 } Layout;
@@ -208,6 +209,7 @@ menu_t *menu  = NULL;
 
 /* function declarations */
 static void           togglemenu(const Arg *arg);
+static void           drawicon(const char *file, size_t col_index, unsigned int *width, unsigned int *height);
 static void           applyrules(Client *c);
 static Bool           applysizehints(Client *c, int *x, int *y, int *w, int *h, Bool interact);
 static void           arrange(Monitor *m);
@@ -1169,8 +1171,17 @@ drawbar(Monitor *m) {
       }
    }
 
-   dc.w  = blw = TEXTW(m->ltsymbol);
-   drawtext(m->ltsymbol, 4, True);
+   if(!m->lt[m->sellt]->icon)
+   {
+      dc.w = blw = TEXTW(m->ltsymbol);
+      drawtext(m->ltsymbol, 4, True);
+   }
+   else
+   {
+      unsigned int w, h;
+      drawicon(m->lt[m->sellt]->icon, 4, &w, &h);
+      dc.w = blw = w;
+   }
    dc.x += dc.w;
    x = dc.x;
 
@@ -1194,7 +1205,7 @@ drawbar(Monitor *m) {
       dc.w=0;
       char *buf = stext, *ptr = buf;
       while( *ptr ) {
-         for( i = 0; *ptr < 0 || *ptr > NUMCOLORS; i++, ptr++);
+         for( i = 0; *ptr < 0 || *ptr > MAXCOLORS; i++, ptr++);
          dc.w += textnw(buf,i);
          buf=++ptr;
       }
@@ -1209,7 +1220,7 @@ drawbar(Monitor *m) {
          dc.w = m->ww - x;
       }
       m->titlebarend = dc.x;
-      drawcoloredtext(stext);
+      drawtext(stext, 8, True);
    }
 
    for(c = m->clients; c && (!ISVISIBLE(c) || c->iswidget); c = c->next);
@@ -1309,7 +1320,7 @@ drawcoloredtext(char *text) {
    int i, ox = dc.x;
 
    while( *ptr ) {
-      for( i = 0; *ptr < 0 || *ptr > NUMCOLORS; i++, ptr++);
+      for( i = 0; *ptr < 0 || *ptr > MAXCOLORS; i++, ptr++);
       if( !*ptr ) break;
       c=*ptr;
       *ptr=0;
@@ -1348,6 +1359,25 @@ drawcoloredtext(char *text) {
   }*/
 
 void
+drawicon(const char *file, size_t col_index, unsigned int *width, unsigned int *height) {
+   Pixmap icon;
+   unsigned int x, pw, ph;
+   int ix, iy;
+
+   x = dc.x;
+   icon = XCreatePixmap(dpy, dc.drawable, 12, 12, 1);
+   XReadBitmapFile(dpy, dc.drawable, file, &pw, &ph, &icon, &ix, &iy); pw += 3;
+   XSetForeground(dpy, dc.gc, dc.colors[col_index][ColBG]);
+   XFillRectangle(dpy, dc.drawable, dc.gc, x, 0, pw, bh);
+   XSetForeground(dpy, dc.gc, dc.colors[col_index][ColFG]);
+   XSetBackground(dpy, dc.gc, dc.colors[col_index][ColBG]);
+   XCopyPlane(dpy, icon, dc.drawable, dc.gc, ix, iy, pw, bh, x, 1, 1);
+
+   *width  = pw;
+   *height = ph;
+}
+
+void
 drawsquare(Bool filled, Bool empty, Bool invert, size_t col_index) {
    int x;
    XGCValues gcv;
@@ -1382,9 +1412,14 @@ drawtext(const char *text, size_t col_index, Bool pad) {
       dc.w = dc.w - 5;
    }
 
-   XRectangle r = { dc.x , dc.y, dc.w , dc.h };
+   XRectangle r2 = { dc.x , dc.y, dc.w , dc.h };
+   XSetForeground(dpy, dc.gc, dc.colors[0][ColBG]);
+   XFillRectangles(dpy, dc.drawable, dc.gc, &r2, 1);
+
+   XRectangle r = { dc.x , dc.y + (bh-1), dc.w , 1 };
    XSetForeground(dpy, dc.gc, dc.colors[col_index][ColBG]);
    XFillRectangles(dpy, dc.drawable, dc.gc, &r, 1);
+
    if(!text)
       return;
    olen = strlen(text);
@@ -2299,6 +2334,7 @@ restack(Monitor *m) {
          if(!c->isfloating && ISVISIBLE(c) && !c->iswidget) {
             XConfigureWindow(dpy, c->win, CWSibling|CWStackMode, &wc);
             wc.sibling = c->win;
+            XLowerWindow(dpy, c->win);
          }
    }
    while(XCheckMaskEvent(dpy, EnterWindowMask, &ev));
@@ -2487,13 +2523,13 @@ setup(void) {
    cursor[CurMove] = XCreateFontCursor(dpy, XC_fleur);
    /* init appearance */
 #ifndef XFT
-   for(int i=0; i<NUMCOLORS; i++) {
+   for(int i=0; i<MAXCOLORS; i++) {
       dc.colors[i][ColBorder] = getcolor( colors[i][ColBorder] );
       dc.colors[i][ColFG] = getcolor( colors[i][ColFG] );
       dc.colors[i][ColBG] = getcolor( colors[i][ColBG] );
    }
 #else
-   for(int i=0; i<NUMCOLORS; i++) {
+   for(int i=0; i<MAXCOLORS; i++) {
       dc.colors[i][ColBorder] = getcolor( colors[i][ColBorder], &dc.xftcolors[i][ColBorder] );
       dc.colors[i][ColFG] = getcolor( colors[i][ColFG], &dc.xftcolors[i][ColFG] );
       dc.colors[i][ColBG] = getcolor( colors[i][ColBG], &dc.xftcolors[i][ColBG] );
@@ -2598,7 +2634,7 @@ textnw(const char *text, unsigned int len) {
    char buf[len + 1];
 
    for(i=0, ibuf=0; *ptr && i<len; i++, ptr++) {
-      if(*ptr <= NUMCOLORS && *ptr > 0) {
+      if(*ptr <= MAXCOLORS && *ptr > 0) {
          if (i < len) { lenbuf--; }
       } else {
          buf[ibuf]=*ptr;
@@ -3347,9 +3383,15 @@ systray_acquire(void) {
 void
 systray_add(Window win) {
    Systray *s;
+   char name[256];
 
    if(!systray_enable)   return;
    if(systray_find(win)) return; /* don't add same window again */
+
+   if(!gettextprop(win, netatom[NetWMName], name, sizeof name))
+      gettextprop(win, XA_WM_NAME, name, sizeof name);
+   if(name[0] == '\0')
+      return;
 
    s = zcalloc(sizeof(Systray));
    s->win = win;
@@ -3379,19 +3421,18 @@ systray_del(Systray *s) {
    *ss = s->next;
 
    IFREE(s);
-   return;
 }
 
 void
 systray_freeicons(void) {
-   Systray *i;
+   Systray *i, *next;
 
    if(!systray_enable) return;
 
-   for(i = trayicons; i; i = i->next) {
+   for(i = trayicons; i; i = next) {
       XUnmapWindow(dpy, i->win);
       XReparentWindow(dpy, i->win, ROOT, 0, 0);
-      IFREE(i);
+      next = i->next; IFREE(i);
    }
 
    XSetSelectionOwner(dpy, netatom[NetSystemTray], None, CurrentTime);
