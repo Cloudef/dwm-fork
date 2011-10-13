@@ -246,7 +246,8 @@ static void           motionnotify(XEvent *e);
 static void           expose(XEvent *e);
 static void           focus(Client *c);
 static void           focusin(XEvent *e);
-static void           focusmon(const Arg *arg);
+static void           focusmon(Monitor *m);
+static void           focusmonitor(const Arg *arg);
 static void           focusstack(const Arg *arg);
 #ifndef XFT
 static unsigned long  getcolor(const char *colstr);
@@ -701,6 +702,9 @@ createmenu( menu_t *m, const menuCtx *ctx, int x, int y ) {
    m->drawable = XCreatePixmap(dpy, root, m->w, m->h, DefaultDepth(dpy, screen));
    updatemenu(m, m->x, m->y);
 
+   if(selmon && selmon->sel)
+   { grabbuttons(selmon->sel,False); XSetInputFocus(dpy, root, RevertToPointerRoot, CurrentTime); XSync(dpy,False); }
+
    return(0);
 }
 
@@ -808,22 +812,18 @@ buttonpress(XEvent *e) {
 
    if(ev->button == Button1)
    {
-      if((mm = wintomenu(ev->window)))
-      {
-         buttonmenu(mm, ev->x, ev->y);
-         return;
-      }
       if(menu)
-         closemenus();
-   }
+         if(!(mm = wintomenu(ev->window)))
+            closemenus();
+         else
+         { buttonmenu(mm, ev->x, ev->y); return; }                                              }
 
    if(!autofocusmonitor)
    {
       // focus monitor if necessary
       if((m = wintomon(ev->window)) && m != selmon) {
          unfocus(selmon->sel, True);
-         selmon = m;
-         focus(NULL);
+         focusmon(m);
       }
    }
 
@@ -863,8 +863,7 @@ buttonpress(XEvent *e) {
    else if((c = wintoclient(ev->window))) {
       if(clicktofocus)
       {
-         unfocus(selmon->sel, True);
-         selmon = c->mon;
+         focusmon(c->mon);
          focus(c);
       }
       click = ClkClientWin;
@@ -874,18 +873,6 @@ buttonpress(XEvent *e) {
       if(click                              == buttons[i].click && buttons[i].func && buttons[i].button == ev->button
             && CLEANMASK(buttons[i].mask)   == CLEANMASK(ev->state))
          buttons[i].func((click             == ClkTagBar || click == ClkWinTitle || click == ClkClientWin) && buttons[i].arg.i == 0 ? &arg : &buttons[i].arg);
-
-   /* click focus
-    * needs raise here to fix some buggy behaviour */
-   if(clicktofocus)
-   {
-      if(c && click == ClkClientWin)
-      {
-         focus(c);
-         if(!c->isbelow && c->isfloating)
-            XRaiseWindow(dpy, c->win);
-      }
-   }
 }
 
 void
@@ -1481,14 +1468,13 @@ enternotify(XEvent *e) {
    {
       if((m = wintomon(ev->window)) && m != selmon) {
          unfocus(selmon->sel, True);
-         focus(NULL);
-         selmon = m;
+         focusmon(m);
       }
    }
    else
    {
       if((m = wintomon(ev->window)) && m != selmon)
-      { selmon = m; drawbars(); }
+      { focusmon(m); drawbars(); }
    }
 
    if(!clicktofocus)
@@ -1513,8 +1499,8 @@ motionnotify(XEvent *e) {
    if(!autofocusmonitor)
       return;
 
-   if((m = ptrtomon(ev->x_root, ev->y_root)) != selmon)
-      if(m) { selmon = m; drawbars(); }
+   if((m = ptrtomon(ev->x_root, ev->y_root)))
+      if(m != selmon) { focusmon(m); drawbars(); }
 }
 
 void
@@ -1530,6 +1516,7 @@ void
 focus(Client *c) {
    Monitor *m;
 
+   if(menu) return;
    if(!c || !ISVISIBLE(c) || c->iszombie)
       for(c = selmon->stack; c && (!ISVISIBLE(c) || c->iszombie); c = c->snext);
    for(m = mons; m; m = m->next)
@@ -1538,7 +1525,7 @@ focus(Client *c) {
 
    if(c) {
       if(c->mon != selmon)
-         selmon = c->mon;
+         focusmon(c->mon);
       if(c->isurgent)
          clearurgent(c);
       detachstack(c);
@@ -1564,15 +1551,20 @@ focusin(XEvent *e) { /* there are some broken focus acquiring clients */
       XSetInputFocus(dpy, selmon->sel->win, RevertToPointerRoot, CurrentTime);
 }
 
-void
-focusmon(const Arg *arg) {
+void focusmonitor(const Arg *arg){
    Monitor *m = NULL;
-
    if(!mons->next)
       return;
    if((m = dirtomon(arg->i)) == selmon)
       return;
    unfocus(selmon->sel, True);
+   selmon = m;
+   focus(NULL);
+}
+
+void
+focusmon(Monitor *m) {
+   unfocus(m, True);
    selmon = m;
    focus(NULL);
 }
@@ -2047,7 +2039,6 @@ movemouse(const Arg *arg) {
    }
    c->isfloating = True;
    arrange(c->mon);
-   unfocus(c, True);
    focus(c);
 
    if(!c->isbelow) XRaiseWindow(dpy, c->win);
@@ -2066,8 +2057,7 @@ movemouse(const Arg *arg) {
                resize(c, nx, ny, c->w, c->h, True);
             if((m = ptrtomon(c->x + c->w / 2, c->y + c->h / 2)) != selmon) {
                sendmon(c, m);
-               unfocus(selmon->sel, True);
-               selmon = m;
+               focusmon(m);
                focus(c);
                if(!c->isbelow) XRaiseWindow( dpy, c->win );
             }
@@ -2077,8 +2067,7 @@ movemouse(const Arg *arg) {
    XUngrabPointer(dpy, CurrentTime);
    if((m = ptrtomon(c->x + c->w / 2, c->y + c->h / 2)) != selmon) {
       sendmon(c, m);
-      unfocus(selmon->sel, True);
-      selmon = m;
+      focusmon(m);
       focus(c);
       if(!c->isbelow) XRaiseWindow( dpy, c->win );
    }
@@ -2276,7 +2265,6 @@ resizemouse(const Arg *arg) {
    c->isfloating = True;
    resizeclient(c, c->x, c->y, c->fw, c->fh);
    arrange(c->mon);
-   unfocus(c, True);
    focus(c);
 
    if(!c->isbelow) XRaiseWindow( dpy, c->win );
@@ -2296,8 +2284,7 @@ resizemouse(const Arg *arg) {
                resize(c, c->x, c->y, nw, nh, True);
             if((m = ptrtomon(c->x + c->w / 2, c->y + c->h / 2)) != selmon) {
                sendmon(c, m);
-               unfocus(selmon->sel, True);
-               selmon = m;
+               focusmon(m);
                focus(c);
                if(!c->isbelow) XRaiseWindow( dpy, c->win );
             }
@@ -2309,8 +2296,7 @@ resizemouse(const Arg *arg) {
    while(XCheckMaskEvent(dpy, EnterWindowMask, &ev));
    if((m = ptrtomon(c->x + c->w / 2, c->y + c->h / 2)) != selmon) {
       sendmon(c, m);
-      unfocus(selmon->sel, True);
-      selmon = m;
+      focusmon(m);
       focus(c);
       if(!c->isbelow) XRaiseWindow( dpy, c->win );
    }
@@ -2809,7 +2795,7 @@ unmanage(Client *c, Bool destroyed) {
    Monitor *m = c->mon;
    XWindowChanges wc;
 
-   selmon = m;
+   focusmon(m);
    if(c && c->isfullscreen)
       togglebarm(m, 1);
 
@@ -3626,9 +3612,9 @@ focusonclick(const Arg *arg) {
          w = MIN(TEXTW(c->name), mw);
          if (x < arg->i && x+w > arg->i) {
             focus(c);
-            restack(selmon);
             if(c->isfloating)
                XRaiseWindow(dpy, c->win);
+            restack(selmon);
 
             break;
          } else
