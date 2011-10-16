@@ -1,7 +1,10 @@
 /* config.h */
 
+#define FONT_NAME "erusfont"
+#define FONT_SIZE "7"
+
 /* appearance */
-static const char font[] = "erusfont 7";
+static const char font[] = FONT_NAME" "FONT_SIZE;
 
 /*   border,   foreground ,background */
 static const char colors[MAXCOLORS][ColLast][8] = {
@@ -127,7 +130,7 @@ static const Layout layouts[]  = {
 #define pikakuvake(cmd) { .v = (const char*[]){ "pikakuvake", cmd, NULL } }
 
 /* commands */
-static const char *dmenucmd[]    = { "dmenu_run" , "-p" , "Run:" , "-fn", font, "-nb", colors[0][ColBG], "-nf", colors[0][ColFG], "-sb", colors[1][ColBG], "-sf", colors[1][ColFG], NULL };
+static const char *dmenucmd[]    = { "dmenu_run" , "-p" , "dwm" , "-fn", FONT_NAME":"FONT_SIZE, "-nb", colors[0][ColBG], "-nf", colors[0][ColFG], "-sb", colors[1][ColBG], "-sf", colors[1][ColFG], NULL };
 static const char *termcmd[]     = { "urxvt",            NULL };
 static const char *dvolminus[]   = { "dvol", "-d", "1",  NULL };
 static const char *dvolplus[]    = { "dvol", "-i", "1",  NULL };
