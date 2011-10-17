@@ -816,7 +816,8 @@ buttonpress(XEvent *e) {
          if(!(mm = wintomenu(ev->window)))
             closemenus();
          else
-         { buttonmenu(mm, ev->x, ev->y); return; }                                              }
+         { buttonmenu(mm, ev->x, ev->y); return; }
+   }
 
    if(!autofocusmonitor)
    {
