@@ -609,7 +609,7 @@ updatemenu( menu_t *m, int x, int y ) {
 #endif
    size_t i;
    dc.x = 0;   dc.y = 0;
-   dc.w = m->w; dc.h = m->h;
+   dc.w = m->w;
 
    for(i = 0; m->ctx[i].title; ++i)
    {
@@ -621,6 +621,7 @@ updatemenu( menu_t *m, int x, int y ) {
       if(m->sel == i) { col = 5; m->sely = dc.y; }
       else col = 6;
 
+      dc.h = dc.font.height;
       drawtext(m->ctx[i].title, col, False);
       dc.y += dc.font.height;
    }
@@ -1432,7 +1433,7 @@ drawtext(const char *text, size_t col_index, Bool pad) {
 #ifndef XFT
    y    = dc.y + ((dc.h + dc.font.ascent - dc.font.descent) / 2);
 #else
-   y    = dc.y;
+   y    = dc.y + dc.h - dc.font.height;
 #endif
    x    = dc.x + (h / 2);
    /* shorten text if necessary */

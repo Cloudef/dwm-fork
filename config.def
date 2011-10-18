@@ -1,12 +1,16 @@
 /* config.def
  * Default configuration */
 
-#define FONT_NAME "terminus"
-#define FONT_SIZE "7"
+#ifdef XFT
+   #define FONT_NAME "terminus"
+   #define FONT_SIZE "7"
 
-/* appearance */
+   /* appearance */
+   static const char font[] = FONT_NAME" "FONT_SIZE;
+#else
+   static const char font[] = "-*-terminus-medium-r-*-*-14-*-*-*-*-*-*-*";
+#endif
 
-static const char font[] = FONT_NAME" "FONT_SIZE;
 #define NUMCOLORS 8
 
 /*   border,   foreground ,background */
@@ -105,7 +109,11 @@ static const Layout layouts[]  = {
 #define SHCMD(cmd)      { .v = (const char*[]){ "/bin/sh", "-c", cmd, NULL } }
 
 /* commands */
+#ifdef XFT
 static const char *dmenucmd[]    = { "dmenu_run" , "-p" , "dwm" , "-fn", FONT_NAME":"FONT_SIZE, "-nb", colors[0][ColBG], "-nf", colors[0][ColFG], "-sb", colors[1][ColBG], "-sf", colors[1][ColFG], NULL };
+#else
+static const char *dmenucmd[]    = { "dmenu_run" , "-p" , "dwm" , "-fn", font, "-nb", colors[0][ColBG], "-nf", colors[0][ColFG], "-sb", colors[1][ColBG], "-sf", colors[1][ColFG], NULL };
+#endif
 
 /* menus */
 #define MENUEND { NULL, NULL, NULL, {0} }
