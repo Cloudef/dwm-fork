@@ -203,7 +203,9 @@ typedef struct menu_t {
    int x, y, w, h;
    Drawable drawable;
    struct menu_t  *next, *child;
-   const struct menuCtx *ctx, *sel;
+   const struct menuCtx *ctx;
+   int sel;
+   int sely; /* hack :) */
 } menu_t;
 menu_t *menu  = NULL;
 
@@ -596,12 +598,10 @@ static void
 updatemenu( menu_t *m, int x, int y ) {
    Drawable dble = dc.drawable;
    int ow = dc.w, oh = dc.h, ox = dc.x, oy = dc.y;
-   int sely = 0;
    size_t col;
 
    if(!m) return;
-   const menuCtx *osel = m->sel;
-   m->sel = NULL;
+   const int osel = m->sel;
 
    dc.drawable = m->drawable;
 #ifdef XFT
@@ -613,11 +613,15 @@ updatemenu( menu_t *m, int x, int y ) {
 
    for(i = 0; m->ctx[i].title; ++i)
    {
-      col = x > 0    && x < TEXTW2(m->ctx[i].title)
-         && y > dc.y && y < dc.y + dc.font.height ? 5 : 6;
-      drawtext(m->ctx[i].title, col, False);
-      if(col == 5) { m->sel = &m->ctx[i]; sely = dc.y; }
+      if (x > 0      && x < TEXTW2(m->ctx[i].title)
+         && y > dc.y && y < dc.y + dc.font.height )
+         m->sel = i;
 
+      /* this check cause there is keyboard input too */
+      if(m->sel == i) { col = 5; m->sely = dc.y; }
+      else col = 6;
+
+      drawtext(m->ctx[i].title, col, False);
       dc.y += dc.font.height;
    }
 
@@ -630,13 +634,13 @@ updatemenu( menu_t *m, int x, int y ) {
    XftDrawChange(dc.xftdrawable, dc.drawable);
 #endif
 
-   if(m->sel && m->sel != osel)
+   /* only for mouse */
+   if(m->sel != osel)
    {
       if(m->child) { closemenu(m->child); m->child = NULL; }
-      if(m->sel->ctx != NULL)
-         m->child = openmenupos( m->sel->ctx, m->x + m->w, m->y + sely );
+      if(m->ctx[m->sel].ctx != NULL)
+         m->child = openmenupos( m->ctx[m->sel].ctx, m->x + m->w, m->y + m->sely );
    }
-
 }
 
 menu_t*
@@ -673,7 +677,7 @@ createmenu( menu_t *m, const menuCtx *ctx, int x, int y ) {
    m->w    = 0;
    m->h    = 0;
    m->ctx  = ctx;
-   m->sel  = NULL;
+   m->sel  = -1;
    m->child= NULL;
 
    for(i = 0; m->ctx[i].title; ++i)
@@ -691,10 +695,7 @@ createmenu( menu_t *m, const menuCtx *ctx, int x, int y ) {
 
    m->win = XCreateWindow(dpy, root, m->x, m->y, m->w, m->h, 0, DefaultDepth(dpy, screen), CopyFromParent, DefaultVisual(dpy, screen), CWBackPixmap|CWOverrideRedirect|CWEventMask, &wattr);
 
-   if(m == menu)
-      XSelectInput(dpy, m->win, PointerMotionMask|ButtonPressMask);
-   else
-      XSelectInput(dpy, m->win, PointerMotionMask|ButtonPressMask|LeaveWindowMask);
+   XSelectInput(dpy, m->win, PointerMotionMask|ButtonPressMask|KeyPressMask);
 
    XDefineCursor(dpy, m->win, cursor[CurNormal]);
    XMapRaised(dpy, m->win);
@@ -704,6 +705,18 @@ createmenu( menu_t *m, const menuCtx *ctx, int x, int y ) {
 
    if(selmon && selmon->sel)
    { grabbuttons(selmon->sel,False); XSetInputFocus(dpy, root, RevertToPointerRoot, CurrentTime); XSync(dpy,False); }
+
+   /* keyboard input */
+   XGrabKey(dpy, XK_Up,   0, m->win,
+      True, GrabModeAsync, GrabModeAsync);
+   XGrabKey(dpy, XK_Down, 0, m->win,
+      True, GrabModeAsync, GrabModeAsync);
+   XGrabKey(dpy, XK_Right,   0, m->win,
+      True, GrabModeAsync, GrabModeAsync);
+   XGrabKey(dpy, XK_Left, 0, m->win,
+      True, GrabModeAsync, GrabModeAsync);
+
+   XSetInputFocus(dpy, m->win, RevertToPointerRoot, CurrentTime);
 
    return(0);
 }
@@ -756,6 +769,7 @@ closemenu( menu_t *target )
       m = &mm;
 
    (*m)->next = target->next;
+   XSetInputFocus(dpy, (*m)->win, RevertToPointerRoot, CurrentTime);
 
    XFreePixmap(dpy, target->drawable);
    XDestroyWindow(dpy, target->win);
@@ -792,10 +806,10 @@ buttonmenu( menu_t *m, int x, int y )
 {
    if(!m) return;
    updatemenu(m, x, y);
-   if(!m->sel)       return;
-   if(!m->sel->func) return;
+   if(m->sel == -1)         return;
+   if(!m->ctx[m->sel].func) return;
 
-   m->sel->func(&m->sel->arg);
+   m->ctx[m->sel].func(&m->ctx[m->sel].arg);
    closemenus();
 }
 
@@ -813,10 +827,13 @@ buttonpress(XEvent *e) {
    if(ev->button == Button1)
    {
       if(menu)
+      {
          if(!(mm = wintomenu(ev->window)))
+         {
             closemenus();
-         else
+         } else
          { buttonmenu(mm, ev->x, ev->y); return; }
+      }
    }
 
    if(!autofocusmonitor)
@@ -1565,7 +1582,7 @@ void focusmonitor(const Arg *arg){
 
 void
 focusmon(Monitor *m) {
-   unfocus(m, True);
+   if(m->sel) unfocus(m->sel, True);
    selmon = m;
    focus(NULL);
 }
@@ -1827,6 +1844,7 @@ keypress(XEvent *e) {
    unsigned int i;
    KeySym keysym;
    XKeyEvent *ev;
+   menu_t *cmenu;
 
    ev = &e->xkey;
    keysym = XKeycodeToKeysym(dpy, (KeyCode)ev->keycode, 0);
@@ -1835,6 +1853,44 @@ keypress(XEvent *e) {
             && CLEANMASK(keys[i].mod) == CLEANMASK(ev->state)
             && keys[i].func)
          keys[i].func(&(keys[i].arg));
+
+   if(menu && (cmenu = wintomenu(ev->window)))
+   {
+      if(keysym == XK_Up)
+      {
+         cmenu->sel--;
+         if(cmenu->sel < 0)
+            for(i = 0; cmenu->ctx[i].title; i++) cmenu->sel = i;
+         updatemenu(cmenu, 0, 0);
+      } else
+      if(keysym == XK_Down)
+      {
+         cmenu->sel++;
+         if(!cmenu->ctx[cmenu->sel].title) cmenu->sel = 0;
+         updatemenu(cmenu, 0, 0);
+      } else
+      if(keysym == XK_Right)
+      {
+         if(cmenu->sel > -1)
+         {
+            if(cmenu->child) { closemenu(cmenu->child); cmenu->child = NULL; }
+            if(cmenu->ctx[cmenu->sel].ctx)
+               cmenu->child = openmenupos( cmenu->ctx[cmenu->sel].ctx, cmenu->x + cmenu->w, cmenu->y + cmenu->sely );
+         }
+      } else
+      if(keysym == XK_Left)
+      {
+         if(cmenu != menu) closemenu(cmenu);
+      } else
+      if(keysym == XK_Return)
+      {
+         buttonmenu(cmenu, 0, 0);
+      } else
+      if(keysym == XK_Escape)
+      {
+         closemenus();
+      }
+   }
 }
 
 void
