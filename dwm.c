@@ -1876,7 +1876,12 @@ keypress(XEvent *e) {
          {
             if(cmenu->child) { closemenu(cmenu->child); cmenu->child = NULL; }
             if(cmenu->ctx[cmenu->sel].ctx)
-               cmenu->child = openmenupos( cmenu->ctx[cmenu->sel].ctx, cmenu->x + cmenu->w, cmenu->y + cmenu->sely );
+            {
+               cmenu->child      = openmenupos( cmenu->ctx[cmenu->sel].ctx, cmenu->x + cmenu->w, cmenu->y + cmenu->sely );
+               if(!cmenu->child) return;
+               cmenu->child->sel = 0;
+               updatemenu(cmenu->child, 0, 0);
+            }
          }
       } else
       if(keysym == XK_Left)
