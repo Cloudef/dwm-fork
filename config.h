@@ -256,6 +256,17 @@ static const menuCtx rootMenu[] = {
    MENUEND,
 };
 
+/* menu key bindings
+ * only grabbed when menu is alive. */
+static Key menu_keys[] = {
+   { 0, XK_Up,       menu_up,       {0} },
+   { 0, XK_Down,     menu_down,     {0} },
+   { 0, XK_Right,    menu_next,     {0} },
+   { 0, XK_Left,     menu_prev,     {0} },
+   { 0, XK_Return,   menu_accept,   {0} },
+   { 0, XK_Escape,   togglemenu,    {0} }
+};
+
 /* keys */
 static Key keys[] = {
    /* modifier                     key                function          argument */

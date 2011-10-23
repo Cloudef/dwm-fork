@@ -85,14 +85,14 @@ static const int nmaster = 2;
 
 /* layouts */
 static const Layout layouts[]  = {
-    /* symbol     arrange function */
-    { "TI",      tile },
-    { "BH",      bstackhoriz },
-    { "GR" ,     grid },
-    { "BS" ,     bstack },
-    { "FL",      NULL },
-    { "M",       monocle },
-    { .symbol = NULL, .arrange = NULL },
+    /* icon, symbol, arrange function */
+    { NULL, "TI",    tile },
+    { NULL, "BH",    bstackhoriz },
+    { NULL, "GR" ,   grid },
+    { NULL, "BS" ,   bstack },
+    { NULL, "FL",    NULL },
+    { NULL, "M",     monocle },
+    { NULL, NULL, NULL, },
 };
 
 /* key definitions */
@@ -125,6 +125,17 @@ static const menuCtx rootMenu[] = {
    { "EMPTY", NULL,  NULL, {0} },
    MENUSEP("-------------"),
    MENUEND,
+};
+
+/* menu key bindings
+ * only grabbed when menu is alive. */
+static Key menu_keys[] = {
+   { 0, XK_Up,       menu_up,       {0} },
+   { 0, XK_Down,     menu_down,     {0} },
+   { 0, XK_Right,    menu_next,     {0} },
+   { 0, XK_Left,     menu_prev,     {0} },
+   { 0, XK_Return,   menu_accept,   {0} },
+   { 0, XK_Escape,   togglemenu,    {0} }
 };
 
 /* keys */

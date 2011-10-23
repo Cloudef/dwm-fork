@@ -207,10 +207,16 @@ typedef struct menu_t {
    int sel;
    int sely; /* hack :) */
 } menu_t;
-menu_t *menu  = NULL;
+static menu_t *menu  = NULL;
+static menu_t *cmenu = NULL;
 
 /* function declarations */
 static void           togglemenu(const Arg *arg);
+static void           menu_up(const Arg *arg);
+static void           menu_down(const Arg *arg);
+static void           menu_next(const Arg *arg);
+static void           menu_prev(const Arg *arg);
+static void           menu_accept(const Arg *arg);
 static void           drawicon(const char *file, size_t col_index, unsigned int *width, unsigned int *height);
 static void           applyrules(Client *c);
 static Bool           applysizehints(Client *c, int *x, int *y, int *w, int *h, Bool interact);
@@ -670,7 +676,10 @@ ctxtomenu( const menuCtx *ctx )
 
 static int
 createmenu( menu_t *m, const menuCtx *ctx, int x, int y ) {
-   size_t i;
+   size_t i, j;
+   unsigned int modifiers[] = { 0, LockMask, numlockmask, numlockmask|LockMask };
+   KeyCode code;
+
    if(ctxtomenu(ctx)) return(-1);
 
    m->x    = x;
@@ -708,14 +717,13 @@ createmenu( menu_t *m, const menuCtx *ctx, int x, int y ) {
    { grabbuttons(selmon->sel,False); XSetInputFocus(dpy, root, RevertToPointerRoot, CurrentTime); XSync(dpy,False); }
 
    /* keyboard input */
-   XGrabKey(dpy, XK_Up,   0, m->win,
-      True, GrabModeAsync, GrabModeAsync);
-   XGrabKey(dpy, XK_Down, 0, m->win,
-      True, GrabModeAsync, GrabModeAsync);
-   XGrabKey(dpy, XK_Right,   0, m->win,
-      True, GrabModeAsync, GrabModeAsync);
-   XGrabKey(dpy, XK_Left, 0, m->win,
-      True, GrabModeAsync, GrabModeAsync);
+   XUngrabKey(dpy, AnyKey, AnyModifier, m->win);
+   for(i = 0; i < LENGTH(menu_keys); i++) {
+      if((code = XKeysymToKeycode(dpy, menu_keys[i].keysym)))
+         for(j = 0; j < LENGTH(modifiers); j++)
+            XGrabKey(dpy, code, menu_keys[i].mod | modifiers[j], m->win,
+                  True, GrabModeAsync, GrabModeAsync);
+   }
 
    XSetInputFocus(dpy, m->win, RevertToPointerRoot, CurrentTime);
 
@@ -794,14 +802,6 @@ closemenus(void) {
    menu = NULL;
 }
 
-void
-togglemenu(const Arg *arg) {
-   if(!menu)
-      openmenu(&rootMenu[0]);
-   else
-      closemenus();
-}
-
 static void
 buttonmenu( menu_t *m, int x, int y )
 {
@@ -812,6 +812,55 @@ buttonmenu( menu_t *m, int x, int y )
 
    m->ctx[m->sel].func(&m->ctx[m->sel].arg);
    closemenus();
+}
+
+void
+togglemenu(const Arg *arg) {
+   if(!menu)
+      openmenu(&rootMenu[0]);
+   else
+      closemenus();
+}
+
+void
+menu_up(const Arg *arg) {
+   size_t i;
+   cmenu->sel--;
+   if(cmenu->sel < 0)
+      for(i = 0; cmenu->ctx[i].title; i++) cmenu->sel = i;
+   updatemenu(cmenu, 0, 0);
+}
+
+void
+menu_down(const Arg *arg) {
+   cmenu->sel++;
+   if(!cmenu->ctx[cmenu->sel].title) cmenu->sel = 0;
+   updatemenu(cmenu, 0, 0);
+}
+
+void
+menu_next(const Arg *arg) {
+   if(cmenu->sel > -1)
+   {
+      if(cmenu->child) { closemenu(cmenu->child); cmenu->child = NULL; }
+      if(cmenu->ctx[cmenu->sel].ctx)
+      {
+         cmenu->child      = openmenupos( cmenu->ctx[cmenu->sel].ctx, cmenu->x + cmenu->w, cmenu->y + cmenu->sely );
+         if(!cmenu->child) return;
+         cmenu->child->sel = 0;
+         updatemenu(cmenu->child, 0, 0);
+      }
+   }
+}
+
+void
+menu_prev(const Arg *arg) {
+   if(cmenu != menu) closemenu(cmenu);
+}
+
+void
+menu_accept(const Arg *arg) {
+   buttonmenu(cmenu, 0, 0);
 }
 
 void
@@ -1845,7 +1894,6 @@ keypress(XEvent *e) {
    unsigned int i;
    KeySym keysym;
    XKeyEvent *ev;
-   menu_t *cmenu;
 
    ev = &e->xkey;
    keysym = XKeycodeToKeysym(dpy, (KeyCode)ev->keycode, 0);
@@ -1857,45 +1905,12 @@ keypress(XEvent *e) {
 
    if(menu && (cmenu = wintomenu(ev->window)))
    {
-      if(keysym == XK_Up)
-      {
-         cmenu->sel--;
-         if(cmenu->sel < 0)
-            for(i = 0; cmenu->ctx[i].title; i++) cmenu->sel = i;
-         updatemenu(cmenu, 0, 0);
-      } else
-      if(keysym == XK_Down)
-      {
-         cmenu->sel++;
-         if(!cmenu->ctx[cmenu->sel].title) cmenu->sel = 0;
-         updatemenu(cmenu, 0, 0);
-      } else
-      if(keysym == XK_Right)
-      {
-         if(cmenu->sel > -1)
-         {
-            if(cmenu->child) { closemenu(cmenu->child); cmenu->child = NULL; }
-            if(cmenu->ctx[cmenu->sel].ctx)
-            {
-               cmenu->child      = openmenupos( cmenu->ctx[cmenu->sel].ctx, cmenu->x + cmenu->w, cmenu->y + cmenu->sely );
-               if(!cmenu->child) return;
-               cmenu->child->sel = 0;
-               updatemenu(cmenu->child, 0, 0);
-            }
-         }
-      } else
-      if(keysym == XK_Left)
-      {
-         if(cmenu != menu) closemenu(cmenu);
-      } else
-      if(keysym == XK_Return)
-      {
-         buttonmenu(cmenu, 0, 0);
-      } else
-      if(keysym == XK_Escape)
-      {
-         closemenus();
-      }
+      keysym = XKeycodeToKeysym(dpy, (KeyCode)ev->keycode, 0);
+      for(i = 0; i < LENGTH(menu_keys); i++)
+         if(keysym == menu_keys[i].keysym
+               && CLEANMASK(menu_keys[i].mod) == CLEANMASK(ev->state)
+               && menu_keys[i].func)
+            menu_keys[i].func(&(menu_keys[i].arg));
    }
 }
 
