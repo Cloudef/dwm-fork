@@ -717,12 +717,15 @@ createmenu( menu_t *m, const menuCtx *ctx, int x, int y ) {
    { grabbuttons(selmon->sel,False); XSetInputFocus(dpy, root, RevertToPointerRoot, CurrentTime); XSync(dpy,False); }
 
    /* keyboard input */
-   XUngrabKey(dpy, AnyKey, AnyModifier, m->win);
-   for(i = 0; i < LENGTH(menu_keys); i++) {
-      if((code = XKeysymToKeycode(dpy, menu_keys[i].keysym)))
-         for(j = 0; j < LENGTH(modifiers); j++)
-            XGrabKey(dpy, code, menu_keys[i].mod | modifiers[j], m->win,
-                  True, GrabModeAsync, GrabModeAsync);
+   updatenumlockmask();
+   {
+      XUngrabKey(dpy, AnyKey, AnyModifier, m->win);
+      for(i = 0; i < LENGTH(menu_keys); i++) {
+         if((code = XKeysymToKeycode(dpy, menu_keys[i].keysym)))
+            for(j = 0; j < LENGTH(modifiers); j++)
+               XGrabKey(dpy, code, menu_keys[i].mod | modifiers[j], m->win,
+                     True, GrabModeAsync, GrabModeAsync);
+      }
    }
 
    XSetInputFocus(dpy, m->win, RevertToPointerRoot, CurrentTime);
