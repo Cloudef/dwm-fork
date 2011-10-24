@@ -3129,11 +3129,11 @@ updatestatus(void) {
       strcpy(stext, VERSION);
 #ifndef STATUS_MONITOR
    if(!alwaysdrawstatus && !inversestatus)
-#endif
       drawbar(selmon);
-#ifndef STATUS_MONITOR
    else
       drawbars();
+#else
+   drawbars();
 #endif
 }
 
