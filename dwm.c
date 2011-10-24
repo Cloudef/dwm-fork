@@ -160,6 +160,7 @@ struct Monitor {
    const Layout      *lt[2];
    const Layout      *olt;
    int               primary;
+   int               status;
    Edge              *margin;
    Edge              *edge;
 
@@ -1114,6 +1115,7 @@ createmon(void) {
    m->showbar = showbar;
    m->topbar = topbar;
    m->primary = 0;
+   m->status  = 0;
    m->lt[0] = &layouts[0];
    m->lt[1] = &layouts[1 % LENGTH(layouts)];
    m->olt   = NULL;
@@ -1258,9 +1260,13 @@ drawbar(Monitor *m) {
       }
    }
 
-   if(m == selmon || alwaysdrawstatus)
+#ifndef STATUS_MONITOR
+   if(((m == selmon || alwaysdrawstatus) && !inversestatus) || (inversestatus && m != selmon))
+#else
+   if(m->status)
+#endif
    {
-      dc.w=0;
+      dc.w = 0;
       char *buf = stext, *ptr = buf;
       while( *ptr ) {
          for( i = 0; *ptr < 0 || *ptr > MAXCOLORS; i++, ptr++);
@@ -1270,16 +1276,16 @@ drawbar(Monitor *m) {
       dc.w +=   dc.font.height / 2;
       dc.x  = m->ww - dc.w;
       if(systray_enable)
-      {
          if(m->primary) dc.x  = dc.x - systray_get_width();             // subtract systray width
-      }
       if(dc.x < x) {
          dc.x = x;
          dc.w = m->ww - x;
       }
       m->titlebarend = dc.x;
-      drawtext(stext, 8, True);
+      drawcoloredtext(stext);
    }
+   else
+   { dc.x = m->ww; if(systray_enable) if(m->primary) dc.x -= systray_get_width(); }
 
    for(c = m->clients; c && (!ISVISIBLE(c) || c->iswidget); c = c->next);
    firstvis = c;
@@ -2995,6 +3001,7 @@ updategeom(void) {
                m->edge   = &edges[i];
 
                if(i == PRIMARY_MONITOR) m->primary = 1; else m->primary = 0;
+               if(i == STATUS_MONITOR)  m->status  = 1; else m->status  = 0;
 
                updatebarpos(m);
             }
@@ -3120,10 +3127,14 @@ void
 updatestatus(void) {
    if(!gettextprop(root, XA_WM_NAME, stext, sizeof(stext)))
       strcpy(stext, VERSION);
-   if(!alwaysdrawstatus)
+#ifndef STATUS_MONITOR
+   if(!alwaysdrawstatus && !inversestatus)
+#endif
       drawbar(selmon);
+#ifndef STATUS_MONITOR
    else
       drawbars();
+#endif
 }
 
 void

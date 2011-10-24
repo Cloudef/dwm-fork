@@ -28,14 +28,19 @@ static const Bool showbar           = True;     /* False means no bar */
 static const Bool topbar            = True;     /* False means bottom bar */
 static const Bool clicktofocus      = True;     /* Click to focus windows */
 static const Bool autofocusmonitor  = True;     /* Auto focus monitors */
-static const Bool alwaysdrawstatus  = True;     /* Draw status to both monitors? */
+static const Bool alwaysdrawstatus  = False;    /* Draw status to both monitors? */
+static const Bool inversestatus     = True;     /* Draw status on inactive monitor */
 
 static const Bool systray_enable = True;
 static const int systray_spacing = 2;
 static const int status_height   = 0;
 
-/* which monitor systray appears */
+/* Which monitor systray appears */
 #define PRIMARY_MONITOR 0
+
+/* NOTE: This disables inversestatus && alwaysdrawstatus.
+ * Comment or remove this define to not use it */
+#define STATUS_MONITOR  1
 
 /* display edges, similar to margins expect
  * everything gets affected */
