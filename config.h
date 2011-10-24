@@ -1,7 +1,7 @@
 /* config.h */
 
 #ifdef XFT
-   #define FONT_NAME "erusfont"
+   #define FONT_NAME "Erusfont"
    #define FONT_SIZE "7"
 
    /* appearance */
@@ -12,15 +12,18 @@
 
 /*   border,   foreground ,background */
 static const char colors[MAXCOLORS][ColLast][8] = {
-   { "#010101", "#B7CE42", "#1C1C1C" }, // 0 = Normal tag
-   { "#212121", "#FEA63C", "#D81860" }, // 1 = Selected tag
-   { "#212121", "#66AABB", "#D81860" }, // 2 = Urgent tag
-   { "#ffffff", "#ffffff", "#414141" }, // 3 = Unselected tag with windows
-   { "#ffffff", "#FEA63C", "#1C1C1C" }, // 4 = Layout
-   { "#212121", "#FEA63C", "#D81860" }, // 5 = Selected window
-   { "#ffffff", "#D81860", "#414141" }, // 6 = Unselected window
-   { "#ffffff", "#cc3300", "#dddddd" }, // 7 = Window pager text
-   { "#cacaca", "#cacaca", "#414141" }, // 8 = Status bar
+   { "#212121", "#FFFFFF", "#1C1C1C" }, //  0 = Normal tag
+   { "#212121", "#FFFFFF", "#1793D1" }, //  1 = Selected tag
+   { "#212121", "#66AABB", "#D81860" }, //  2 = Urgent tag
+   { "#212121", "#000000", "#BE5037" }, //  3 = Unselected tag with windows
+   { "#212121", "#FEA63C", "#1C1C1C" }, //  4 = Layout
+   { "#212121", "#FFFFFF", "#1793d1" }, //  5 = Selected window
+   { "#212121", "#CFCFCF", "#1C1C1C" }, //  6 = Unselected window
+   { "#212121", "#CC3300", "#7F7F7F" }, //  7 = Window pager seperator
+   { "#212121", "#CACACA", "#1C1C1C" }, //  8 = Status bar
+   { "#212121", "#FFFFFF", "#1793D1" }, //  9 = Selected menu
+   { "#212121", "#CFCFCF", "#1C1C1C" }, // 10 = Unselected menu
+   { "#212121", "#1793D1", "#1C1C1C" }, // 11 = Seperator menu
 };
 
 static const unsigned int borderpx  = 1;        /* border pixel of windows */
@@ -165,7 +168,7 @@ static const char *gvbam[]       = { "gvbam",            NULL };
 
 /* menus */
 #define MENUEND { NULL, NULL, NULL, {0} }
-#define MENUSEP(x) { x, NULL, NULL, {0} }
+#define MENUSEP { "", NULL, NULL, {0} }
 static const menuCtx touhouMenu[] = {
    { "TH06 Embodiment of Scarlet Devil   ",  NULL, spawn, THCMD("TH06/th06e.exe") },
    { "TH07 Perfect Cherry Blossom        ",  NULL, spawn, THCMD("TH07/th07e.exe") },
@@ -181,19 +184,19 @@ static const menuCtx touhouMenu[] = {
    { "TH12.5 Double Spoiler              ",  NULL, spawn, THCMD("TH12.5/th125e.exe") },
    { "TH12.8 Fairy Wars                  ",  NULL, spawn, THCMD("TH12.8/th128e.exe") },
    { "TH13 Ten Desires                   ",  NULL, spawn, THCMD("TH13/th13.exe") },
-   MENUSEP("-----------------------------------"),
+   MENUSEP,
    { "Doujin                            +",  NULL, spawn, FM(THDIR"/Doujin") },
    MENUEND,
 };
 
 static const menuCtx internetMenu[] = {
    { "Opera   ",  NULL, spawn, {.v = opera } },
-   MENUSEP("--------"),
+   MENUSEP,
    { "rTorrent",  NULL, spawn, {.v = torrent } },
-   MENUSEP("--------"),
+   MENUSEP,
    { "IRC     ",  NULL, spawn, {.v = irc } },
    { "MSN     ",  NULL, spawn, {.v = msn   } },
-   MENUSEP("--------"),
+   MENUSEP,
    { "RSS     ",  NULL, spawn, {.v = rss } },
    MENUEND,
 };
@@ -202,7 +205,7 @@ static const menuCtx gameMenu[] = {
    { "Touhou                >", &touhouMenu[0], NULL, {0} },
    { "Eroge                 +", NULL, spawn,
    FM("/media/Storage/Bishoujo Pelit") },
-   MENUSEP("-----------------------"),
+   MENUSEP,
    { "Cave Story             ", NULL, spawn,
    pikakuvake(GAMES"/CaveStory/doukutsu") },
    { "Last Remnant           ", NULL, spawn,
@@ -213,31 +216,31 @@ static const menuCtx gameMenu[] = {
    pikakuvake(GAMES"/RefRain/runGame.sh") },
    { "Edens Aegis            ", NULL, spawn,
    pikakuvake(GAMES"/Edens Aegis/EdensAegis.run") },
-   MENUSEP("-----------------------"),
+   MENUSEP,
    { "Grand Fantasia         ", NULL, spawn,
    pikakuvake(HOME"/.wine/drive_c/AeriaGames/GrandFantasia/runGame.sh") },
    { "Spiral Knights         ", NULL, spawn,
    pikakuvake(HOME"/spiral/spiral") },
-   MENUSEP("-----------------------"),
+   MENUSEP,
    { "Ys The Ark of Napishtim", NULL, spawn,
    pikakuvake(GAMES"/Ys The Ark of Napishtim/ys6_win_dx9.exe") },
    { "Ys The Oath in Felghana", NULL, spawn,
    pikakuvake(GAMES"/Ys The Oath in Felghana/ysf_win_dx9.exe") },
    { "Ys Origins             ", NULL, spawn,
    pikakuvake(GAMES"/Ys Origins/YSO_WIN.exe") },
-   MENUSEP("-----------------------"),
+   MENUSEP,
    { "Sora no Kiseki         ", NULL, spawn,
    pikakuvake(GAMES"/Eiyuu Densetsu - Sora no Kiseki/ED6_WIN.run") },
    { "Sora no Kiseki SC      ", NULL, spawn,
    pikakuvake(GAMES"/Eiyuu Densetsu - Sora no Kiseki SC/ED6_WIN2.run") },
    { "Sora no Kiseki TC      ", NULL, spawn,
    pikakuvake(GAMES"/Eiyuu Densetsu - Sora no Kiseki TC/ED6_WIN3.run") },
-   MENUSEP("-----------------------"),
+   MENUSEP,
    { "MAME                   ", NULL, spawn, {.v = mame } },
    { "NO$GBA                 ", NULL, spawn,
    pikakuvake(EMUS"/NoGBA/NO$GBA.exe") },
    { "VBA-M                  ", NULL, spawn, {.v = gvbam } },
-   MENUSEP("-----------------------"),
+   MENUSEP,
    { "Steam                  ", NULL, spawn,
    pikakuvake(HOME"/.wine/drive_c/Program Files/Steam/Steam.exe") },
    MENUEND,
@@ -245,7 +248,7 @@ static const menuCtx gameMenu[] = {
 
 static const menuCtx archMenu[] = {
    { "Nitrogen", NULL, spawn, {.v = nitrogen} },
-   MENUSEP("--------"),
+   MENUSEP,
    { "Exit    ", NULL, spawn, {.v = oblogout} },
    MENUEND,
 };
@@ -253,10 +256,10 @@ static const menuCtx archMenu[] = {
 static const menuCtx rootMenu[] = {
    { "Music        ", NULL,  spawn, {.v = deadbeef } },
    { "Manga        ", NULL,  spawn, {.v = comix } },
-   MENUSEP("-------------"),
+   MENUSEP,
    { "Internet    >", &internetMenu[0],   NULL, {0} },
    { "Games       >", &gameMenu[0],       NULL, {0} },
-   MENUSEP("-------------"),
+   MENUSEP,
    { "ArchLinux   >", &archMenu[0],       NULL, {0} },
    MENUEND,
 };

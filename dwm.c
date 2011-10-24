@@ -40,7 +40,7 @@
 #define MIN(A, B)               ((A) < (B) ? (A) : (B))
 #endif
 
-#define MAXCOLORS               9
+#define MAXCOLORS               12
 #define MOUSEMASK               (BUTTONMASK|PointerMotionMask)
 #define WIDTH(X)                ((X)->w + 2 * (X)->bw)
 #define HEIGHT(X)               ((X)->h + 2 * (X)->bw)
@@ -245,6 +245,7 @@ static Monitor       *dirtomon(int dir);
 static void           drawbar(Monitor *m);
 static void           drawbars(void);
 static void           drawvline(size_t col_index);
+static void           drawhline(size_t col_index);
 static void           drawcoloredtext(char *text);
 // static void                   drawsquare(Bool filled, Bool empty, unsigned long col[ColLast]);
 static void           drawsquare(Bool filled, Bool empty, Bool invert, size_t col_index);
@@ -620,17 +621,23 @@ updatemenu( menu_t *m, int x, int y ) {
 
    for(i = 0; m->ctx[i].title; ++i)
    {
-      if (x > 0      && x < TEXTW2(m->ctx[i].title)
-         && y > dc.y && y < dc.y + dc.font.height )
+      if (x > 0      && x < m->w
+         && y > dc.y && y < dc.y + dc.font.height
+         && strlen(m->ctx[i].title))
          m->sel = i;
 
       /* this check cause there is keyboard input too */
-      if(m->sel == i) { col = 5; m->sely = dc.y; }
-      else col = 6;
+      if(m->sel == i) { col = 9; m->sely = dc.y; }
+      else col = 10;
 
-      dc.h = dc.font.height;
-      drawtext(m->ctx[i].title, col, False);
-      dc.y += dc.font.height;
+      if(strlen(m->ctx[i].title))
+      {
+         dc.h = dc.font.height;
+         drawtext(m->ctx[i].title, col, False);
+
+      }
+      else { dc.h = 4; drawhline(11); }
+      dc.y += dc.h;
    }
 
    XCopyArea(dpy, dc.drawable, m->win, dc.gc, 0, 0, m->w, m->h, 0, 0);
@@ -677,6 +684,7 @@ ctxtomenu( const menuCtx *ctx )
 
 static int
 createmenu( menu_t *m, const menuCtx *ctx, int x, int y ) {
+   int valid = 0;
    size_t i, j;
    unsigned int modifiers[] = { 0, LockMask, numlockmask, numlockmask|LockMask };
    KeyCode code;
@@ -695,9 +703,10 @@ createmenu( menu_t *m, const menuCtx *ctx, int x, int y ) {
    {
       if(m->w < TEXTW2(m->ctx[i].title))
          m->w = TEXTW2(m->ctx[i].title);
-      m->h += dc.font.height;
+      if(strlen(m->ctx[i].title)) { m->h += dc.font.height; valid = 1; }
+      else m->h += 4;
    }
-   if(i == 0) return(-1);
+   if(i == 0 || !valid) return(-1);
 
    XSetWindowAttributes wattr;
    wattr.override_redirect = True;
@@ -833,6 +842,7 @@ menu_up(const Arg *arg) {
    if(cmenu->sel < 0)
       for(i = 0; cmenu->ctx[i].title; i++) cmenu->sel = i;
    updatemenu(cmenu, 0, 0);
+   while(!strlen(cmenu->ctx[cmenu->sel].title)) menu_up(0);
 }
 
 void
@@ -840,6 +850,7 @@ menu_down(const Arg *arg) {
    cmenu->sel++;
    if(!cmenu->ctx[cmenu->sel].title) cmenu->sel = 0;
    updatemenu(cmenu, 0, 0);
+   while(!strlen(cmenu->ctx[cmenu->sel].title)) menu_down(0);
 }
 
 void
@@ -1254,7 +1265,7 @@ drawbar(Monitor *m) {
          if(!s && a)
             s = a;
          snprintf(posbuf, LENGTH(posbuf), "[%d/%d]", s, a);
-         dc.w = TEXTW(posbuf);
+         dc.w = TEXTW2(posbuf) + 4;
          drawtext(posbuf, 6, True);
          x = dc.x + dc.w;
       }
@@ -1281,11 +1292,11 @@ drawbar(Monitor *m) {
          dc.x = x;
          dc.w = m->ww - x;
       }
-      m->titlebarend = dc.x;
       drawcoloredtext(stext);
    }
    else
    { dc.x = m->ww; if(systray_enable) if(m->primary) dc.x -= systray_get_width(); }
+   m->titlebarend = dc.x;
 
    for(c = m->clients; c && (!ISVISIBLE(c) || c->iswidget); c = c->next);
    firstvis = c;
@@ -1329,9 +1340,11 @@ drawbar(Monitor *m) {
          if(c != firstvis)
             drawvline(col);
 
+         /* useless
          istitledraw = True;
          drawsquare(c->isfixed, c->isfloating, False, col);
          istitledraw = False;
+         */
 
          dc.x += dc.w;
          dc.w = ow - dc.w;
@@ -1347,7 +1360,9 @@ drawbar(Monitor *m) {
       dc = seldc;
       sel_win = True;
       drawtext(m->sel->name, 5, True);
+      /* useless
       drawsquare(m->sel->isfixed, m->sel->isfloating, True, col);
+      */
 
       sel_win = False;
    }
@@ -1367,14 +1382,30 @@ drawbars(void) {
 
 void
 drawvline(size_t col_index) {
+   XRectangle r = { dc.x , dc.y, 1, dc.h };
+   XSetForeground(dpy, dc.gc, dc.colors[col_index][ColBG]);
+   XFillRectangles(dpy, dc.drawable, dc.gc, &r, 1);
+
+   XRectangle r2 = { dc.x, dc.y + 4, 1, 2 };
+   XSetForeground(dpy, dc.gc, dc.colors[col_index][ColFG]);
+   XFillRectangles(dpy, dc.drawable, dc.gc, &r2, 1);
+
+   XRectangle r3 = { dc.x, dc.y + 8, 1, 2 };
+   XSetForeground(dpy, dc.gc, dc.colors[col_index][ColFG]);
+   XFillRectangles(dpy, dc.drawable, dc.gc, &r3, 1);
+}
+
+void
+drawhline(size_t col_index) {
    XGCValues gcv;
+
+   XRectangle r = { dc.x , dc.y, dc.w , dc.h };
+   XSetForeground(dpy, dc.gc, dc.colors[col_index][ColBG]);
+   XFillRectangles(dpy, dc.drawable, dc.gc, &r, 1);
 
    gcv.foreground = dc.colors[col_index][ColFG];
    XChangeGC(dpy, dc.gc, GCForeground, &gcv);
-   // XDrawLine(dpy, dc.drawable, dc.gc, dc.x, dc.y, dc.x, dc.y + (dc.font.ascent + dc.font.descent + 2));
-   XDrawLine(dpy, dc.drawable, dc.gc, dc.x, dc.y + 3 , dc.x, dc.y + bh - 3);
-   //XDrawLine(dpy, dc.drawable, dc.gc, dc.x - 1 , dc.y + 3 , dc.x - 1 , dc.y + bh - 3);
-   //XDrawRectangle(dpy , dc.drawable , dc.gc , dc.x - 3 , dc.y + 3 , 2 , bh - 6);
+   XDrawLine(dpy, dc.drawable, dc.gc, dc.x, dc.y + dc.h / 2, dc.w, dc.y + dc.h / 2);
 }
 
 void
@@ -1435,7 +1466,7 @@ drawicon(const char *file, size_t col_index, unsigned int *width, unsigned int *
    XFillRectangle(dpy, dc.drawable, dc.gc, x, 0, pw, bh);
    XSetForeground(dpy, dc.gc, dc.colors[col_index][ColFG]);
    XSetBackground(dpy, dc.gc, dc.colors[col_index][ColBG]);
-   XCopyPlane(dpy, icon, dc.drawable, dc.gc, ix, iy, pw, bh, x, 1, 1);
+   XCopyPlane(dpy, icon, dc.drawable, dc.gc, ix, iy - 1, pw, bh, x, 1, 1);
 
    *width  = pw;
    *height = ph;
@@ -1476,11 +1507,7 @@ drawtext(const char *text, size_t col_index, Bool pad) {
       dc.w = dc.w - 5;
    }
 
-   XRectangle r2 = { dc.x , dc.y, dc.w , dc.h };
-   XSetForeground(dpy, dc.gc, dc.colors[0][ColBG]);
-   XFillRectangles(dpy, dc.drawable, dc.gc, &r2, 1);
-
-   XRectangle r = { dc.x , dc.y + (bh-1), dc.w , 1 };
+   XRectangle r = { dc.x , dc.y, dc.w , dc.h };
    XSetForeground(dpy, dc.gc, dc.colors[col_index][ColBG]);
    XFillRectangles(dpy, dc.drawable, dc.gc, &r, 1);
 

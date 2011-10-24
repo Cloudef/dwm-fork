@@ -11,18 +11,20 @@
    static const char font[] = "-*-terminus-medium-r-*-*-14-*-*-*-*-*-*-*";
 #endif
 
-#define NUMCOLORS 8
-
 /*   border,   foreground ,background */
-static const char colors[NUMCOLORS][ColLast][8] = {
-   { "#010101", "#ffffff", "#121212" }, // 0 = Normal tag
-   { "#212121", "#262173", "#e6a9f2" }, // 1 = Selected tag
-   { "#212121", "#040404", "#ea0d05" }, // 2 = Urgent tag
-   { "#ffffff", "#ffffff", "#414141" }, // 3 = Unselected tag with windows
-   { "#ffffff", "#ffffff", "#462173" }, // 4 = Layout
-   { "#212121", "#262173", "#e6a9f2" }, // 5 = Selected window
-   { "#ffffff", "#cccccc", "#313131" }, // 6 = Unselected window
-   { "#ffffff", "#cc3300", "#dddddd" }, // 7 = Window pager text
+static const char colors[MAXCOLORS][ColLast][8] = {
+   { "#212121", "#FFFFFF", "#1C1C1C" }, //  0 = Normal tag
+   { "#212121", "#FFFFFF", "#1793D1" }, //  1 = Selected tag
+   { "#212121", "#66AABB", "#D81860" }, //  2 = Urgent tag
+   { "#212121", "#000000", "#BE5037" }, //  3 = Unselected tag with windows
+   { "#212121", "#FEA63C", "#1C1C1C" }, //  4 = Layout
+   { "#212121", "#FFFFFF", "#1793d1" }, //  5 = Selected window
+   { "#212121", "#CFCFCF", "#1C1C1C" }, //  6 = Unselected window
+   { "#212121", "#CC3300", "#7F7F7F" }, //  7 = Window pager seperator
+   { "#212121", "#CACACA", "#1C1C1C" }, //  8 = Status bar
+   { "#212121", "#FFFFFF", "#1793D1" }, //  9 = Selected menu
+   { "#212121", "#CFCFCF", "#1C1C1C" }, // 10 = Unselected menu
+   { "#212121", "#1793D1", "#1C1C1C" }, // 11 = Seperator menu
 };
 
 static const unsigned int borderpx  = 1;        /* border pixel of windows */
