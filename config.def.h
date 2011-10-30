@@ -44,7 +44,7 @@ static const int status_height   = 0;
 
 /* NOTE: This disables inversestatus && alwaysdrawstatus.
  * Comment or remove this define to not use it */
-/* #define STATUS_MONITOR  0 */
+/* #define STATUS_MONITOR 0 */
 
 /* display edges, similar to margins expect
  * everything gets affected */

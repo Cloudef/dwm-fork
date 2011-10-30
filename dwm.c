@@ -308,6 +308,7 @@ static void           tile(Monitor *);
 static void           grid(Monitor *m);
 static void           bstack(Monitor *m);
 static void           togglebar(const Arg *arg);
+static void           togglebarm(Monitor *m, int toggle);
 static void           togglefloating(const Arg *arg);
 static void           toggletag(const Arg *arg);
 static void           toggleview(const Arg *arg);
@@ -2248,6 +2249,7 @@ void
 togglefullscreen( const Arg *arg ) {
    Client *c;
 
+   if(!selmon) return;
    c = selmon->sel;
    if(!c) return;
 
@@ -2260,7 +2262,6 @@ togglefullscreen( const Arg *arg ) {
       c->oldbw = c->bw;
       c->bw = 0;
       c->isfloating = 1;
-      togglebar(&((Arg){ .i = 0 }));
       resizeclient(c, c->mon->ox, c->mon->oy, c->mon->ow, c->mon->oh);
       if(!c->isbelow) XRaiseWindow(dpy, c->win);
    }
@@ -2274,10 +2275,9 @@ togglefullscreen( const Arg *arg ) {
       c->y = c->oldy;
       c->w = c->oldw;
       c->h = c->oldh;
-      togglebar(&((Arg){ .i = 1 }));
       resizeclient(c, c->x, c->y, c->w, c->h);
-      arrange(c->mon);
    }
+   arrange(c->mon);
 }
 
 void
@@ -2296,7 +2296,6 @@ clientmessage(XEvent *e) {
          c->oldbw = c->bw;
          c->bw = 0;
          c->isfloating = 1;
-         togglebar(&((Arg){ .i = 0 }));
          resizeclient(c, c->mon->ox, c->mon->oy, c->mon->ow, c->mon->oh);
          if(!c->isbelow) XRaiseWindow(dpy, c->win);
       }
@@ -2310,10 +2309,9 @@ clientmessage(XEvent *e) {
          c->y = c->oldy;
          c->w = c->oldw;
          c->h = c->oldh;
-         togglebar(&((Arg){ .i = 1 }));
          resizeclient(c, c->x, c->y, c->w, c->h);
-         arrange(c->mon);
       }
+      arrange(c->mon);
    }
    else
       if(cme->window == traywin) {
@@ -2421,10 +2419,11 @@ restack(Monitor *m) {
    Client *c;
    XEvent ev;
    XWindowChanges wc;
+   Bool hasfullscreen = False;
 
    drawbar(m);
    if(!m->sel)
-      return;
+   { togglebarm(m, 1); return; } /* nothing */
    //if(m->sel->isfloating || !m->lt[m->sellt]->arrange)
    //   if(!m->sel->isbelow) XRaiseWindow(dpy, m->sel->win);
    if(m->lt[m->sellt]->arrange) {
@@ -2443,9 +2442,15 @@ restack(Monitor *m) {
    /* always above && below */
    for(c = m->clients; c; c = c->next)
    {
-      if(c->isabove)      XRaiseWindow(dpy,c->win);
-      else if(c->isbelow) XLowerWindow(dpy, c->win);
+      if(ISVISIBLE(c))
+      {
+         if(c->isabove)      XRaiseWindow(dpy,c->win);
+         else if(c->isbelow) XLowerWindow(dpy, c->win);
+         if(c->isfullscreen) hasfullscreen = True;
+      }
    }
+   if(hasfullscreen) togglebarm(m, 0); else togglebarm(m, 1); /* check if there was fullscreen window && show/hide bar */
+
    XSync(dpy, False);
 }
 
@@ -2614,7 +2619,11 @@ setup(void) {
 
    /* Sys tray atom */
    char systray_atom[48];
-   snprintf(systray_atom, sizeof(systray_atom), "_NET_SYSTEM_TRAY_S%d", PRIMARY_MONITOR );
+   int primarymon = 0;
+#ifdef PRIMARY_MONITOR
+   primarymon = PRIMARY_MONITOR;
+#endif
+   snprintf(systray_atom, sizeof(systray_atom), "_NET_SYSTEM_TRAY_S%d", primarymon );
    netatom[NetSystemTray] = ATOM(systray_atom);
 
    /* init cursors */
@@ -2793,7 +2802,10 @@ tile(Monitor *m) {
 void
 togglebar(const Arg *arg) {
    if(arg && arg->i != -1)
+   {
+      if(selmon->showbar == arg->i) return;
       selmon->showbar = arg->i;
+   }
    else
       selmon->showbar = !selmon->showbar;
    updatebarpos(selmon);
@@ -2822,12 +2834,15 @@ togglebar(const Arg *arg) {
    }
 }
 
-static void
+void
 togglebarm(Monitor *m, int toggle)
 {
    if(!m) return;
    if(toggle != -1)
+   {
+      if(m->showbar == toggle) return;
       m->showbar = toggle;
+   }
    else
       m->showbar = !m->showbar;
    updatebarpos(m);
@@ -2989,7 +3004,7 @@ updategeom(void) {
 
 #ifdef XINERAMA
    if(XineramaIsActive(dpy)) {
-      int i, j, n, nn;
+      int i, j, n, nn, primarymon = 0, statusmon = 0;
       Client *c;
       Monitor *m;
       XineramaScreenInfo *info = XineramaQueryScreens(dpy, &nn);
@@ -3006,6 +3021,14 @@ updategeom(void) {
       XFree(info);
       nn = j;
       if(n <= nn) {
+#ifdef PRIMARY_MONITOR
+         primarymon = PRIMARY_MONITOR;
+         if(PRIMARY_MONITOR > (nn - n)) primarymon = 0;
+#endif
+#ifdef STATUS_MONITOR
+         statusmon = STATUS_MONITOR;
+         if(STATUS_MONITOR  > (nn - n)) statusmon  = 0;
+#endif
          for(i = 0; i < (nn - n); i++) { /* new monitors available */
             for(m = mons; m && m->next; m = m->next);
             if(m)
@@ -3027,8 +3050,9 @@ updategeom(void) {
                m->margin = &margins[i];
                m->edge   = &edges[i];
 
-               if(i == PRIMARY_MONITOR) m->primary = 1; else m->primary = 0;
-               if(i == STATUS_MONITOR)  m->status  = 1; else m->status  = 0;
+
+               if(i == primarymon) m->primary = 1; else m->primary = 0;
+               if(i == statusmon)  m->status  = 1; else m->status  = 0;
 
                updatebarpos(m);
             }
@@ -3059,6 +3083,7 @@ updategeom(void) {
       if(!mons)
          mons = createmon();
       mons->primary = 1;
+      mons->status  = 1;
       if(mons->mw != sw || mons->mh != sh) {
          dirty = True;
          mons->wx = mons->mx = mons->ox = edges[0].x; mons->wx += margins[0].x;
