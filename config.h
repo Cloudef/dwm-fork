@@ -115,12 +115,12 @@ static const int nmaster = 2;
 /* layouts */
 static const Layout layouts[]  = {
     /* icon (optional),  symbol     arrange function */
-    { ICONS"/tile.xbm",    "TI",      tile },
-    { ICONS"/bhoriz.xbm",  "BH",      bstackhoriz },
-    { ICONS"/grid.xbm",    "GR" ,     grid },
-    { ICONS"/bstack.xbm",  "BS" ,     bstack },
-    { ICONS"/float.xbm",   "FL",      NULL },
-    { ICONS"/monocle.xbm", "M",       monocle },
+    { ICONS"/tile.xbm",    "TI",      tile },         /* 0 */
+    { ICONS"/bhoriz.xbm",  "BH",      bstackhoriz },  /* 1 */
+    { ICONS"/grid.xbm",    "GR" ,     grid },         /* 2 */
+    { ICONS"/bstack.xbm",  "BS" ,     bstack },       /* 3 */
+    { ICONS"/float.xbm",   "FL",      NULL },         /* 4 */
+    { ICONS"/monocle.xbm", "M",       monocle },      /* 5 */
     { NULL, NULL,  NULL },
 };
 

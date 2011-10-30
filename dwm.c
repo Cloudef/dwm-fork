@@ -151,6 +151,7 @@ struct Monitor {
    unsigned int      sellt;
    unsigned int      tagset[2];
    Bool              showbar;
+   Bool              showbartoggle; /* manual toggling */
    Bool              topbar;
    Client            *clients;
    Client            *sel;
@@ -2423,7 +2424,7 @@ restack(Monitor *m) {
 
    drawbar(m);
    if(!m->sel)
-   { togglebarm(m, 1); return; } /* nothing */
+   { if(!m->showbartoggle) togglebarm(m, 1); return; } /* nothing */
    //if(m->sel->isfloating || !m->lt[m->sellt]->arrange)
    //   if(!m->sel->isbelow) XRaiseWindow(dpy, m->sel->win);
    if(m->lt[m->sellt]->arrange) {
@@ -2449,7 +2450,8 @@ restack(Monitor *m) {
          if(c->isfullscreen) hasfullscreen = True;
       }
    }
-   if(hasfullscreen) togglebarm(m, 0); else togglebarm(m, 1); /* check if there was fullscreen window && show/hide bar */
+   if(!m->showbartoggle)
+   { if(hasfullscreen) togglebarm(m, 0); else togglebarm(m, 1); } /* check if there was fullscreen window && show/hide bar */
 
    XSync(dpy, False);
 }
@@ -2800,41 +2802,6 @@ tile(Monitor *m) {
 }
 
 void
-togglebar(const Arg *arg) {
-   if(arg && arg->i != -1)
-   {
-      if(selmon->showbar == arg->i) return;
-      selmon->showbar = arg->i;
-   }
-   else
-      selmon->showbar = !selmon->showbar;
-   updatebarpos(selmon);
-   XMoveResizeWindow(dpy, selmon->barwin, selmon->wx, selmon->by, selmon->ww, bh);
-   arrange(selmon);
-
-   if(systray_enable && selmon->primary)
-   {
-      XWindowChanges wc;
-      if(!selmon->showbar)
-      {
-         wc.y = -bh;
-         XConfigureWindow(dpy, traywin, CWY, &wc);
-      }
-      else
-         if(selmon->showbar)
-         {
-            if(topbar)
-               wc.y = 0;
-            else
-               wc.y = sh - bh;
-
-            XConfigureWindow(dpy, traywin, CWY, &wc);
-            systray_update();
-         }
-   }
-}
-
-void
 togglebarm(Monitor *m, int toggle)
 {
    if(!m) return;
@@ -2868,6 +2835,30 @@ togglebarm(Monitor *m, int toggle)
             XConfigureWindow(dpy, traywin, CWY, &wc);
             systray_update();
          }
+   }
+}
+
+void
+togglebar(const Arg *arg) {
+   Client *c;
+
+   if(!selmon) return;
+
+   for(c = selmon->clients; c; c = c->next)
+   {
+      if(ISVISIBLE(c) && c->isfullscreen)
+         return; /* there is a fullscreen window on this monitor, don't toggle */
+   }
+
+   if(arg && arg->i != -1)
+   {
+      selmon->showbartoggle = arg->i;
+      togglebarm(selmon, arg->i);
+   }
+   else
+   {
+      selmon->showbartoggle = selmon->showbar;
+      togglebarm(selmon, !selmon->showbar);
    }
 }
 
@@ -2926,7 +2917,7 @@ unmanage(Client *c, Bool destroyed) {
 
    focusmon(m);
    if(c && c->isfullscreen)
-      togglebarm(m, 1);
+   { if(!m->showbartoggle) togglebarm(m, 1); }
 
    /* The server grab construct avoids race conditions. */
    detach(c);
