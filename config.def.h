@@ -33,7 +33,7 @@ static const Bool topbar            = True;     /* False means bottom bar */
 static const Bool clicktofocus      = True;     /* Click to focus windows */
 static const Bool autofocusmonitor  = True;     /* Auto focus monitors */
 static const Bool alwaysdrawstatus  = True;     /* Draw status to both monitors? */
-static const Bool inversestatus     = True;     /* Draw status on inactive monitor */
+static const Bool inversestatus     = False;    /* Draw status on inactive monitor */
 
 static const Bool systray_enable = True;
 static const int systray_spacing = 2;
@@ -117,6 +117,7 @@ static const Layout layouts[]  = {
 
 /* commands */
 #ifdef XFT
+/* needs dmenu-xft */
 static const char *dmenucmd[]    = { "dmenu_run" , "-p" , "dwm" , "-fn", FONT_NAME":"FONT_SIZE, "-nb", colors[0][ColBG], "-nf", colors[0][ColFG], "-sb", colors[1][ColBG], "-sf", colors[1][ColFG], NULL };
 #else
 static const char *dmenucmd[]    = { "dmenu_run" , "-p" , "dwm" , "-fn", font, "-nb", colors[0][ColBG], "-nf", colors[0][ColFG], "-sb", colors[1][ColBG], "-sf", colors[1][ColFG], NULL };
@@ -124,13 +125,13 @@ static const char *dmenucmd[]    = { "dmenu_run" , "-p" , "dwm" , "-fn", font, "
 
 /* menus */
 #define MENUEND { NULL, NULL, NULL, {0} }
-#define MENUSEP(x) { x, NULL, NULL, {0} }
+#define MENUSEP {   "", NULL, NULL, {0} }
 
 /* title, submenu, function, argument */
 static const menuCtx rootMenu[] = {
-   MENUSEP("-------------"),
+   MENUSEP,
    { "EMPTY", NULL,  NULL, {0} },
-   MENUSEP("-------------"),
+   MENUSEP,
    MENUEND,
 };
 

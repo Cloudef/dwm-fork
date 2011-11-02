@@ -140,6 +140,7 @@ static const Layout layouts[]  = {
 
 #define SHCMD(cmd)      { .v = (const char*[]){ "/bin/sh", "-c", cmd, NULL } }
 #define pikakuvake(cmd) { .v = (const char*[]){ "pikakuvake", cmd, NULL } }
+#define STEAM { .v = (const char*[]){ "steam", NULL } }
 
 /* commands */
 #ifdef XFT
@@ -217,8 +218,6 @@ static const menuCtx gameMenu[] = {
    { "Edens Aegis            ", NULL, spawn,
    pikakuvake(GAMES"/Edens Aegis/EdensAegis.run") },
    MENUSEP,
-   { "Grand Fantasia         ", NULL, spawn,
-   pikakuvake(HOME"/.wine/drive_c/AeriaGames/GrandFantasia/runGame.sh") },
    { "Spiral Knights         ", NULL, spawn,
    pikakuvake(HOME"/spiral/spiral") },
    MENUSEP,
@@ -235,14 +234,15 @@ static const menuCtx gameMenu[] = {
    pikakuvake(GAMES"/Eiyuu Densetsu - Sora no Kiseki SC/ED6_WIN2.run") },
    { "Sora no Kiseki TC      ", NULL, spawn,
    pikakuvake(GAMES"/Eiyuu Densetsu - Sora no Kiseki TC/ED6_WIN3.run") },
+   { "Zero no Kiseki         ", NULL, spawn,
+   pikakuvake(GAMES"/Eiyuu Densetsu - Zero no Kiseki/ED_ZERO.run") },
    MENUSEP,
    { "MAME                   ", NULL, spawn, {.v = mame } },
    { "NO$GBA                 ", NULL, spawn,
    pikakuvake(EMUS"/NoGBA/NO$GBA.exe") },
    { "VBA-M                  ", NULL, spawn, {.v = gvbam } },
    MENUSEP,
-   { "Steam                  ", NULL, spawn,
-   pikakuvake(HOME"/.wine/drive_c/Program Files/Steam/Steam.exe") },
+   { "Steam                  ", NULL, spawn, STEAM },
    MENUEND,
 };
 
