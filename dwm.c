@@ -938,7 +938,7 @@ buttonpress(XEvent *e) {
       }
       else if(ev->x < x + blw)
          click = ClkLtSymbol;
-      else if(ev->x > selmon->wx + selmon->ww - TEXTW(stext))
+      else if(ev->x > selmon->titlebarend)
          click = ClkStatusText;
       else{
          arg.ui = ev->x;
@@ -1286,7 +1286,7 @@ drawbar(Monitor *m) {
          dc.w += textnw(buf,i);
          buf=++ptr;
       }
-      dc.w +=   dc.font.height / 2;
+      dc.w += dc.font.height / 2;
       dc.x  = m->ww - dc.w;
       if(systray_enable)
          if(m->primary) dc.x  = dc.x - systray_get_width();             // subtract systray width
