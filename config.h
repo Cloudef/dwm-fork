@@ -32,7 +32,7 @@ static const Bool topbar            = True;     /* False means bottom bar */
 static const Bool clicktofocus      = True;     /* Click to focus windows */
 static const Bool autofocusmonitor  = True;     /* Auto focus monitors */
 static const Bool alwaysdrawstatus  = False;    /* Draw status to both monitors? */
-static const Bool inversestatus     = True;     /* Draw status on inactive monitor */
+static const Bool inversestatus     = False;    /* Draw status on inactive monitor */
 
 static const Bool systray_enable = True;
 static const int systray_spacing = 2;
@@ -140,7 +140,8 @@ static const Layout layouts[]  = {
 
 #define SHCMD(cmd)      { .v = (const char*[]){ "/bin/sh", "-c", cmd, NULL } }
 #define pikakuvake(cmd) { .v = (const char*[]){ "pikakuvake", cmd, NULL } }
-#define STEAM { .v = (const char*[]){ "steam", NULL } }
+#define STEAM  { .v = (const char*[]){ "steam", NULL } }
+#define DESURA { .v = (const char*[]){ "desura", NULL } }
 
 /* commands */
 #ifdef XFT
@@ -207,8 +208,6 @@ static const menuCtx gameMenu[] = {
    { "Eroge                 +", NULL, spawn,
    FM("/media/Storage/Bishoujo Pelit") },
    MENUSEP,
-   { "Cave Story             ", NULL, spawn,
-   pikakuvake(GAMES"/CaveStory/doukutsu") },
    { "The Last Remnant       ", NULL, spawn,
    pikakuvake(GAMES"/The Last Remnant/Binaries/TLR.exe") },
    { "TES V : Skyrim         ", NULL, spawn,
@@ -244,7 +243,8 @@ static const menuCtx gameMenu[] = {
    pikakuvake(EMUS"/NoGBA/NO$GBA.exe") },
    { "VBA-M                  ", NULL, spawn, {.v = gvbam } },
    MENUSEP,
-   { "Steam                  ", NULL, spawn, STEAM },
+   { "Steam                  ", NULL, spawn, STEAM  },
+   { "Desura                 ", NULL, spawn, DESURA },
    MENUEND,
 };
 
