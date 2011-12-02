@@ -26,7 +26,7 @@ static const char colors[MAXCOLORS][ColLast][8] = {
    { "#212121", "#1793D1", "#1C1C1C" }, // 11 = Seperator menu
 };
 
-static const unsigned int borderpx  = 1;        /* border pixel of windows */
+static const unsigned int borderpx  = 0;        /* border pixel of windows */
 static const Bool showbar           = True;     /* False means no bar */
 static const Bool topbar            = True;     /* False means bottom bar */
 static const Bool clicktofocus      = True;     /* Click to focus windows */
@@ -81,8 +81,6 @@ Bool autohide             = False;
 
 static const Rule rules[] = {
    /* class      instance    title       tags mask     type           monitor */
-   { "Gimp",     NULL,       NULL,       0,            FLOAT,         -1 },
-   { "Thunar",   NULL,       NULL,       0,            FLOAT,         -1 },
    { "File-roller",  NULL,   NULL,       0,            FLOAT,         -1 },
    { "URxvt",    "URxvtq",   NULL,       0,            URXVTQ,         0 },
    { "Oblogout", NULL,       NULL,       0,            URXVTQ,         0 },
@@ -214,8 +212,6 @@ static const menuCtx gameMenu[] = {
    pikakuvake(GAMES"/The Elder Scrolls V Skyrim/SkyrimLauncher.exe") },
    { "ALLTYNEX Second        ", NULL, spawn,
    pikakuvake(GAMES"/ALLTYNEX Second/alltynex2nd.exe") },
-   { "RefRain                ", NULL, spawn,
-   pikakuvake(GAMES"/RefRain/runGame.sh") },
    { "Edens Aegis            ", NULL, spawn,
    pikakuvake(GAMES"/Edens Aegis/EdensAegis.run") },
    MENUSEP,
