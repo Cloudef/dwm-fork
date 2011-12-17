@@ -89,19 +89,18 @@ Bool autohide             = False;
 
 static const Rule rules[] = {
    /* class      instance    title       tags mask     type           monitor */
-   { "File-roller",  NULL,   NULL,       0,            FLOAT,         -1 },
-   { "Oblogout", NULL,       NULL,       0,            URXVTQ,         0 },
-   { "MaCoPiX",  NULL,       NULL,       0,            WIDGET,         1 },
-   { "Kupfer.py",NULL,       NULL,       0,            WIDGET,        -1 },
-   { "dzen",     "dzen2",    NULL,       0,            CONKY,         -1 },
-   { "Conky",    NULL,       NULL,       0,            CONKY,          1 },
-   { "URxvt",    NULL,       NULL,       0,            TERM,          -1 },
-   { "URxvt",    "URxvtq",   NULL,       0,            URXVTQ,         0 },
-   { "URxvt",    NULL,       "rTorrent", 1 << 4,       TERM,           1 },
-   { "URxvt",    NULL,       "SnowNews", 1 << 3,       TERM,           1 },
-   { "URxvt",    NULL,       "MSN",      1 << 2,       TERM,           1 },
-   { "URxvt",    NULL,       "IRSSI",    1 << 1,       TERM,           1 },
-   { "OperaNext", NULL,      NULL,       0,            TERM,          -1 },
+   { "File-roller",  NULL,   NULL,         0,            FLOAT,         -1 },
+   { "Oblogout", NULL,       NULL,         0,            URXVTQ,         0 },
+   { "MaCoPiX",  NULL,       NULL,         0,            WIDGET,         1 },
+   { "Kupfer.py",NULL,       NULL,         0,            WIDGET,        -1 },
+   { "dzen",     "dzen2",    NULL,         0,            CONKY,         -1 },
+   { "Conky",    NULL,       NULL,         0,            CONKY,          1 },
+   { "URxvt",    NULL,       NULL,         0,            TERM,          -1 },
+   { "URxvt",    "URxvtq",   NULL,         0,            URXVTQ,         0 },
+   { "URxvt",    NULL,       "rTorrent",   1 << 2,       TERM,           1 },
+   { "URxvt",    NULL,       "SnowNews",   1 << 1,       TERM,           1 },
+   { "URxvt",    NULL,       "IRC && MSN", 1 << 0,       TERM,           1 },
+   { "OperaNext", NULL,      NULL,         0,            TERM,          -1 },
 };
 
 /* layout(s) */
@@ -166,8 +165,8 @@ static const char *prnt[]        = { "scrot",            NULL };
 static const char *opera[]       = { "opera",            NULL };
 static const char *nitrogen[]    = { "nitrogen",         NULL };
 static const char *urxvtq[]      = { "URXVTQ",           NULL };
-static const char *irc[]         = { "IRC",              NULL };
-static const char *msn[]         = { "MSN",              NULL };
+static const char *irc_msn[]     = { "urxvt", "-title", "IRC && MSN", \
+                                     "-name", "IRC && MSN", "-e", "TMUX_IRC_MSN", NULL };
 static const char *torrent[]     = { "TORRENT",          NULL };
 static const char *rss[]         = { "RSS",              NULL };
 static const char *comix[]       = { "comix",            NULL };
@@ -199,14 +198,13 @@ static const menuCtx touhouMenu[] = {
 };
 
 static const menuCtx internetMenu[] = {
-   { "Opera   ",  NULL, spawn, {.v = opera } },
+   { "Opera",        NULL, spawn, {.v = opera } },
    MENUSEP,
-   { "rTorrent",  NULL, spawn, {.v = torrent } },
+   { "rTorrent",     NULL, spawn, {.v = torrent } },
    MENUSEP,
-   { "IRC     ",  NULL, spawn, {.v = irc } },
-   { "MSN     ",  NULL, spawn, {.v = msn   } },
+   { "IRC && MSN",   NULL, spawn, {.v = irc_msn } },
    MENUSEP,
-   { "RSS     ",  NULL, spawn, {.v = rss } },
+   { "RSS",          NULL, spawn, {.v = rss } },
    MENUEND,
 };
 

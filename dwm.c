@@ -625,14 +625,14 @@ updatemenu( menu_t *m, int x, int y ) {
    XftDrawChange(dc.xftdrawable, dc.drawable);
 #endif
    size_t i;
-   dc.x = 0;   dc.y = 0;
+   dc.x = 0; dc.y = 0;
    dc.w = m->w;
 
    for(i = 0; m->ctx[i].title; ++i)
    {
-      if (x > 0      && x < m->w
-         && y > dc.y && y < dc.y + dc.font.height
-         && strlen(m->ctx[i].title))
+      if (x > 0    && x < m->w &&
+          y > dc.y && y < dc.y + dc.font.height &&
+          strlen(m->ctx[i].title))
          m->sel = i;
 
       /* this check cause there is keyboard input too */
@@ -1210,7 +1210,7 @@ dirtomon(int dir) {
 
 void
 drawbar(Monitor *m) {
-   int x, a = 0, s= 0, ow, mw = 0, bw = 0, extra, tw;
+   int x, a = 0, s= 0, ow, mw = 0, extra, tw;
    unsigned int   i, n  = 0 , urg = 0;
    occ = 0;
    char    posbuf[10];
@@ -1376,7 +1376,6 @@ drawbar(Monitor *m) {
       sel_win = False;
    }
 
-   bw = m->bw;
    XCopyArea(dpy, dc.drawable, m->barwin, dc.gc, 0, 0, m->bw, bh, 0, 0);
    XSync(dpy, False);
 }
