@@ -99,7 +99,7 @@ static const Rule rules[] = {
    { "URxvt",    "URxvtq",   NULL,         0,            URXVTQ,         0 },
    { "URxvt",    NULL,       "rTorrent",   1 << 2,       TERM,           1 },
    { "URxvt",    NULL,       "SnowNews",   1 << 1,       TERM,           1 },
-   { "URxvt",    NULL,       "IRC && MSN", 1 << 0,       TERM,           1 },
+   { "URxvt",    "IRC && MSN", NULL,       1 << 0,       TERM,           1 },
    { "OperaNext", NULL,      NULL,         0,            TERM,          -1 },
 };
 
