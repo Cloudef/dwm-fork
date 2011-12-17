@@ -63,7 +63,7 @@ static Edge margins[] = {
 /* bar edges */
 static Edge dwmbar[] = {
    /* X   Y   W   H */
-   {  0,  0,-350, 0 },
+   {  0,  0,  0, 0 },
    {  0,  0,  0,  0 },
 };
 
