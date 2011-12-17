@@ -88,7 +88,7 @@ struct Client {
    int basew, baseh, incw, inch, maxw, maxh, minw, minh;
    int bw, oldbw;
    unsigned int tags;
-   Bool isfullscreen, isfixed, isfloating, iswidget, isbelow, isabove, iszombie, issticky, isurgent, oldstate;
+   Bool isfullscreen, isfixed, isfloating, isborder, iswidget, isbelow, isabove, iszombie, issticky, isurgent, oldstate;
    Client *next;
    Client *snext;
    Monitor *mon;
@@ -143,7 +143,7 @@ struct Monitor {
    char              ltsymbol[16];
    float             mfact;
    int               num;
-   int               by;                  /* bar geometry */
+   int               by, bw;              /* bar geometry */
    int               mx, my, mw, mh;      /* screen size */
    int               wx, wy, ww, wh;      /* window area */
    int               ox, oy, ow, oh;      /* original sizes */
@@ -175,7 +175,7 @@ typedef struct {
    const char *instance;
    const char *title;
    unsigned int tags;
-   Bool isfloating, iswidget, isbelow, isabove, iszombie, issticky;
+   Bool isfloating, iswidget, isbelow, isabove, iszombie, issticky, isborder;
    int monitor;
 } Rule;
 
@@ -418,6 +418,12 @@ applyrules(Client *c) {
    XClassHint ch = { 0 };
 
    /* rule matching */
+   c->iswidget = False;
+   c->isbelow  = False;
+   c->isabove  = False;
+   c->iszombie = False;
+   c->issticky = False;
+   c->isborder = True;
    c->isfloating   = c->tags = 0;
    c->isfullscreen = False;
    if(XGetClassHint(dpy, c->win, &ch)) {
@@ -435,6 +441,7 @@ applyrules(Client *c) {
             c->isabove    = r->isabove;
             c->iszombie   = r->iszombie;
             c->issticky   = r->issticky;
+            c->isborder   = r->isborder;
             c->tags |= r->tags;
             for(m = mons; m && m->num != r->monitor; m = m->next);
             if(m)
@@ -1287,17 +1294,17 @@ drawbar(Monitor *m) {
          buf=++ptr;
       }
       dc.w += dc.font.height / 2;
-      dc.x  = m->ww - dc.w;
+      dc.x  = m->bw - dc.w;
       if(systray_enable)
          if(m->primary) dc.x  = dc.x - systray_get_width();             // subtract systray width
       if(dc.x < x) {
          dc.x = x;
-         dc.w = m->ww - x;
+         dc.w = m->bw - x;
       }
       drawcoloredtext(stext);
    }
    else
-   { dc.x = m->ww; if(systray_enable) if(m->primary) dc.x -= systray_get_width(); }
+   { dc.x = m->bw; if(systray_enable) if(m->primary) dc.x -= systray_get_width(); }
    m->titlebarend = dc.x;
 
    for(c = m->clients; c && (!ISVISIBLE(c) || c->iswidget); c = c->next);
@@ -1369,8 +1376,8 @@ drawbar(Monitor *m) {
       sel_win = False;
    }
 
-   bw = m->ww;
-   XCopyArea(dpy, dc.drawable, m->barwin, dc.gc, 0, 0, bw, bh, 0, 0);
+   bw = m->bw;
+   XCopyArea(dpy, dc.drawable, m->barwin, dc.gc, 0, 0, m->bw, bh, 0, 0);
    XSync(dpy, False);
 }
 
@@ -1986,6 +1993,7 @@ manage(Window w, XWindowAttributes *wa) {
    Window trans = None;
    XWindowChanges wc;
    char kdetmp[6];
+   int borderwidth = 0;
    if( gettextprop(w, netatom[KdeWMSysTrayWindow], kdetmp, 6) )
    {
       systray_add(w);
@@ -2013,6 +2021,10 @@ manage(Window w, XWindowAttributes *wa) {
    c->fw = wa->width;
    c->fh = wa->height;
    c->oldbw = wa->border_width;
+
+   if(c->isborder) borderwidth = borderpx;
+   else            borderwidth = 0;
+
    if((c->w == c->mon->mw && c->h == c->mon->mh)) {
       c->isfloating = True; // regression with flash, XXXX
       c->x = c->mon->mx;
@@ -2029,9 +2041,10 @@ manage(Window w, XWindowAttributes *wa) {
       c->y = MAX(c->y, ((c->mon->by == 0) && (c->x + (c->w / 2) >= c->mon->wx)
                && (c->x + (c->w / 2) < c->mon->wx + c->mon->ww)) ? bh : c->mon->my);
       if(!c->iswidget)
-         c->bw = borderpx;
+         c->bw = borderwidth;
    }
    wc.border_width = c->bw;
+
    XConfigureWindow(dpy, w, CWBorderWidth, &wc);
    XSetWindowBorder(dpy, w, dc.colors[0][ColBorder]);
    configure(c); /* propagates border_width, if size doesn't change */
@@ -2958,16 +2971,18 @@ void
 updatebars(void) {
    Monitor *m;
    XSetWindowAttributes wa;
+   int b = 0;
 
    wa.override_redirect = True;
    wa.background_pixmap = ParentRelative;
    wa.event_mask = ButtonPressMask|ExposureMask;
    for(m = mons; m; m = m->next) {
-      m->barwin = XCreateWindow(dpy, root, m->wx, m->by, m->ww, bh, 0, DefaultDepth(dpy, screen),
+      m->barwin = XCreateWindow(dpy, root, dwmbar[b].x, dwmbar[b].y, dwmbar[b].w, dwmbar[b].h, 0, DefaultDepth(dpy, screen),
             CopyFromParent, DefaultVisual(dpy, screen),
             CWOverrideRedirect|CWBackPixmap|CWEventMask, &wa);
       XDefineCursor(dpy, m->barwin, cursor[CurNormal]);
       XMapRaised(dpy, m->barwin);
+      b++;
    }
 }
 
@@ -3041,6 +3056,10 @@ updategeom(void) {
                m->margin = &margins[i];
                m->edge   = &edges[i];
 
+               dwmbar[i].x += m->wx;
+               dwmbar[i].y += m->my;
+               dwmbar[i].h += bh;
+               m->bw = dwmbar[i].w += m->mw;
 
                if(i == primarymon) m->primary = 1; else m->primary = 0;
                if(i == statusmon)  m->status  = 1; else m->status  = 0;
@@ -3083,6 +3102,12 @@ updategeom(void) {
          mons->mh = mons->wh = mons->oh = sh - edges[0].h; mons->wh -= margins[0].h;
          mons->margin = &margins[0];
          mons->edge   = &edges[0];
+
+         dwmbar[0].x += mons->wx;
+         dwmbar[0].y += mons->wy;
+         dwmbar[0].h += bh;
+         mons->bw = dwmbar[0].w += mons->mw;
+
          updatebarpos(mons);
       }
    }
@@ -3599,7 +3624,7 @@ systray_update(void) {
 
    /* get primary */
    for(m = mons; m && !m->primary; m = m->next);
-   pos = m->mw;
+   pos = m->bw;
 
    if(topbar)
       pos_y = m->my;

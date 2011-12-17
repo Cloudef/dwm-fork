@@ -1,14 +1,13 @@
 /* config.def
  * Default configuration */
 
+#define FONT_SIZE "7"
 #ifdef XFT
-   #define FONT_NAME "terminus"
-   #define FONT_SIZE "7"
-
-   /* appearance */
+#  define FONT_NAME "terminus"
    static const char font[] = FONT_NAME" "FONT_SIZE;
 #else
-   static const char font[] = "-*-terminus-medium-r-*-*-14-*-*-*-*-*-*-*";
+#  define FONT_NAME "terminus-medium-r"
+   static const char font[] = "-*-"FONT_NAME"-*-*-"FONT_SIZE"-*-*-*-*-*-*-*";
 #endif
 
 /*   border,   foreground ,background */
@@ -59,6 +58,13 @@ static Edge margins[] = {
    /* X   Y   W   H */
    {  0,  0,  0,  0 }, // 1
    {  0,  0,  0,  0 }, // 2
+};
+
+/* bar edges */
+static Edge dwmbar[] = {
+   /* X   Y   W   H */
+   {  0,  0,-350, 0 },
+   {  0,  0,  0,  0 },
 };
 
 /* tagging */

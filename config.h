@@ -1,32 +1,31 @@
 /* config.h */
 
+#define FONT_SIZE   "7"
 #ifdef XFT
-   #define FONT_NAME "Erusfont"
-   #define FONT_SIZE "7"
-
-   /* appearance */
+#  define FONT_NAME "Erusfont"
    static const char font[] = FONT_NAME" "FONT_SIZE;
 #else
-   static const char font[] = "-*-terminus-medium-r-*-*-14-*-*-*-*-*-*-*";
+#  define FONT_NAME "terminus-medium-r"
+   static const char font[] = "-*-"FONT_NAME"-*-*-"FONT_SIZE"-*-*-*-*-*-*-*";
 #endif
 
 /*   border,   foreground ,background */
 static const char colors[MAXCOLORS][ColLast][8] = {
-   { "#212121", "#FFFFFF", "#1C1C1C" }, //  0 = Normal tag
+   { "#212121", "#FFFFFF", "#161616" }, //  0 = Normal tag
    { "#212121", "#FFFFFF", "#1793D1" }, //  1 = Selected tag
    { "#212121", "#66AABB", "#D81860" }, //  2 = Urgent tag
    { "#212121", "#000000", "#BE5037" }, //  3 = Unselected tag with windows
-   { "#212121", "#FEA63C", "#1C1C1C" }, //  4 = Layout
+   { "#212121", "#FEA63C", "#161616" }, //  4 = Layout
    { "#212121", "#FFFFFF", "#1793d1" }, //  5 = Selected window
-   { "#212121", "#CFCFCF", "#1C1C1C" }, //  6 = Unselected window
+   { "#212121", "#CFCFCF", "#161616" }, //  6 = Unselected window
    { "#212121", "#CC3300", "#7F7F7F" }, //  7 = Window pager seperator
-   { "#212121", "#CACACA", "#1C1C1C" }, //  8 = Status bar
+   { "#212121", "#CACACA", "#161616" }, //  8 = Status bar
    { "#212121", "#FFFFFF", "#1793D1" }, //  9 = Selected menu
-   { "#212121", "#CFCFCF", "#1C1C1C" }, // 10 = Unselected menu
-   { "#212121", "#1793D1", "#1C1C1C" }, // 11 = Seperator menu
+   { "#212121", "#CFCFCF", "#161616" }, // 10 = Unselected menu
+   { "#212121", "#1793D1", "#161616" }, // 11 = Seperator menu
 };
 
-static const unsigned int borderpx  = 0;        /* border pixel of windows */
+static const unsigned int borderpx  = 1;        /* border pixel of windows */
 static const Bool showbar           = True;     /* False means no bar */
 static const Bool topbar            = True;     /* False means bottom bar */
 static const Bool clicktofocus      = True;     /* Click to focus windows */
@@ -60,6 +59,13 @@ static Edge margins[] = {
    {  0,  0,  0,  0 }, // 2 NOTE: Second monitor has no bar
 };
 
+/* bar edges */
+static Edge dwmbar[] = {
+   /* X   Y   W   H */
+   {  0,  0,-350, 0 },
+   {  0,  0,  0,  0 },
+};
+
 /* tagging */
 static const char *tags[] = { "東", "方", "P", "R", "O", "J", "E", "C", "T" };
 Bool autohide             = False;
@@ -71,28 +77,31 @@ Bool autohide             = False;
  * zombie   = do not take input
  * sticky   = stay on all tags
  */
-/*             floating,widget,  below.   above,   zombie,  sticky */
-#define NORMAL False,   False,   False,   False,   False,   False
-#define FLOAT  True,    False,   False,   False,   False,   False
-#define WIDGET True,    True,    False,   True,    False,   True
-#define CONKY  True,    True,    True,    False,   True,    True
-#define URXVTQ True,    False,   False,   True,    False,   True
-#define DOCK   True,    True,    False,   True,    False,   True
+/*             floating,widget,  below.   above,   zombie,  sticky,  border */
+#define NORMAL False,   False,   False,   False,   False,   False,   True
+#define FLOAT  True,    False,   False,   False,   False,   False,   True
+#define WIDGET True,    True,    False,   True,    False,   True,    False
+#define CONKY  True,    True,    True,    False,   True,    True,    False
+#define URXVTQ True,    False,   False,   True,    False,   True,    False
+#define DOCK   True,    True,    False,   True,    False,   True,    False
+#define PANEL  True,    True,    True,    False,   False,   True,    False
+#define TERM   False,   False,   False,   False,   False,   False,   False
 
 static const Rule rules[] = {
    /* class      instance    title       tags mask     type           monitor */
    { "File-roller",  NULL,   NULL,       0,            FLOAT,         -1 },
-   { "URxvt",    "URxvtq",   NULL,       0,            URXVTQ,         0 },
    { "Oblogout", NULL,       NULL,       0,            URXVTQ,         0 },
    { "MaCoPiX",  NULL,       NULL,       0,            WIDGET,         1 },
    { "Kupfer.py",NULL,       NULL,       0,            WIDGET,        -1 },
    { "dzen",     "dzen2",    NULL,       0,            CONKY,         -1 },
    { "Conky",    NULL,       NULL,       0,            CONKY,          1 },
-   { "URxvt",    NULL,       "rTorrent", 1 << 4,       NORMAL,         1 },
-   { "URxvt",    NULL,       "SnowNews", 1 << 3,       NORMAL,         1 },
-   { "URxvt",    NULL,       "MSN",      1 << 2,       NORMAL,         1 },
-   { "URxvt",    NULL,       "IRSSI",    1 << 1,       NORMAL,         1 },
-   { "OperaNext", NULL,      NULL,       0,            NORMAL,        -1 },
+   { "URxvt",    NULL,       NULL,       0,            TERM,          -1 },
+   { "URxvt",    "URxvtq",   NULL,       0,            URXVTQ,         0 },
+   { "URxvt",    NULL,       "rTorrent", 1 << 4,       TERM,           1 },
+   { "URxvt",    NULL,       "SnowNews", 1 << 3,       TERM,           1 },
+   { "URxvt",    NULL,       "MSN",      1 << 2,       TERM,           1 },
+   { "URxvt",    NULL,       "IRSSI",    1 << 1,       TERM,           1 },
+   { "OperaNext", NULL,      NULL,       0,            TERM,          -1 },
 };
 
 /* layout(s) */
@@ -215,15 +224,12 @@ static const menuCtx gameMenu[] = {
    { "Edens Aegis            ", NULL, spawn,
    pikakuvake(GAMES"/Edens Aegis/EdensAegis.run") },
    MENUSEP,
-   { "Spiral Knights         ", NULL, spawn,
-   pikakuvake(HOME"/spiral/spiral") },
-   MENUSEP,
    { "Ys The Ark of Napishtim", NULL, spawn,
    pikakuvake(GAMES"/Ys The Ark of Napishtim/ys6_win_dx9.exe") },
    { "Ys The Oath in Felghana", NULL, spawn,
    pikakuvake(GAMES"/Ys The Oath in Felghana/ysf_win_dx9.exe") },
-   { "Ys Origins             ", NULL, spawn,
-   pikakuvake(GAMES"/Ys Origins/YSO_WIN.exe") },
+   { "Ys Origin              ", NULL, spawn,
+   pikakuvake(GAMES"/Ys Origin/YSO_WIN.run") },
    MENUSEP,
    { "Sora no Kiseki         ", NULL, spawn,
    pikakuvake(GAMES"/Eiyuu Densetsu - Sora no Kiseki/ED6_WIN.run") },
