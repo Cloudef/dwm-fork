@@ -143,7 +143,7 @@ struct Monitor {
    char              ltsymbol[16];
    float             mfact;
    int               num;
-   int               bh, by, bw;          /* bar geometry */
+   int               bx, by, bw, bh;      /* bar geometry */
    int               mx, my, mw, mh;      /* screen size */
    int               wx, wy, ww, wh;      /* window area */
    int               ox, oy, ow, oh;      /* original sizes */
@@ -1073,10 +1073,7 @@ configurenotify(XEvent *e) {
 #endif
          updatebars();
          for(m = mons; m; m = m->next)
-         {
-            XMoveResizeWindow(dpy, m->barwin, dwmbar[b].x, dwmbar[b].y, dwmbar[b].w, dwmbar[b].h);
-            b++;
-         }
+            XMoveResizeWindow(dpy, m->barwin, m->bx, m->by, m->bw, m->bh);
          arrange(NULL);
       }
    }
@@ -2829,7 +2826,7 @@ togglebarm(Monitor *m, int toggle)
    else
       m->showbar = !m->showbar;
    updatebarpos(m);
-   XMoveResizeWindow(dpy, m->barwin, m->wx, m->by, m->ww, m->bh);
+   XMoveResizeWindow(dpy, m->barwin, m->bx, m->by, m->bw, m->bh);
    arrange(m);
 
    if(systray_enable && m->primary)
@@ -2980,7 +2977,7 @@ updatebars(void) {
    wa.background_pixmap = ParentRelative;
    wa.event_mask = ButtonPressMask|ExposureMask;
    for(m = mons; m; m = m->next) {
-      m->barwin = XCreateWindow(dpy, root, dwmbar[b].x, dwmbar[b].y, dwmbar[b].w, dwmbar[b].h, 0, DefaultDepth(dpy, screen),
+      m->barwin = XCreateWindow(dpy, root, m->bx, m->by, m->bw, m->bh, 0, DefaultDepth(dpy, screen),
             CopyFromParent, DefaultVisual(dpy, screen),
             CWOverrideRedirect|CWBackPixmap|CWEventMask, &wa);
       XDefineCursor(dpy, m->barwin, cursor[CurNormal]);
@@ -3059,8 +3056,8 @@ updategeom(void) {
                m->margin = &margins[i];
                m->edge   = &edges[i];
 
-               dwmbar[i].x += m->wx;
-               dwmbar[i].y += m->my;
+               m->bx = dwmbar[i].x += m->wx;
+               m->by = dwmbar[i].y += m->my;
                m->bh = dwmbar[i].h += bh;
                m->bw = dwmbar[i].w += m->mw;
 
@@ -3106,8 +3103,8 @@ updategeom(void) {
          mons->margin = &margins[0];
          mons->edge   = &edges[0];
 
-         dwmbar[0].x += mons->wx;
-         dwmbar[0].y += mons->wy;
+         mons->bx = dwmbar[0].x += mons->wx;
+         mons->by = dwmbar[0].y += mons->wy;
          mons->bh = dwmbar[0].h += bh;
          mons->bw = dwmbar[0].w += mons->mw;
 
