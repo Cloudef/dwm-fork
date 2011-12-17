@@ -143,7 +143,7 @@ struct Monitor {
    char              ltsymbol[16];
    float             mfact;
    int               num;
-   int               by, bw;              /* bar geometry */
+   int               bh, by, bw;          /* bar geometry */
    int               mx, my, mw, mh;      /* screen size */
    int               wx, wy, ww, wh;      /* window area */
    int               ox, oy, ow, oh;      /* original sizes */
@@ -1058,6 +1058,7 @@ configure(Client *c) {
 void
 configurenotify(XEvent *e) {
    Monitor *m;
+   int b = 0;
    XConfigureEvent *ev = &e->xconfigure;
 
    if(ev->window == root) {
@@ -1072,7 +1073,10 @@ configurenotify(XEvent *e) {
 #endif
          updatebars();
          for(m = mons; m; m = m->next)
-            XMoveResizeWindow(dpy, m->barwin, m->wx, m->by, m->ww, bh);
+         {
+            XMoveResizeWindow(dpy, m->barwin, dwmbar[b].x, dwmbar[b].y, dwmbar[b].w, dwmbar[b].h);
+            b++;
+         }
          arrange(NULL);
       }
    }
@@ -1333,7 +1337,7 @@ drawbar(Monitor *m) {
       x = dc.x;
    }
    m->titlebarbegin = dc.x;
-   while(dc.w > bh) {
+   while(dc.w > m->bh) {
       if(c) {
 
          ow = dc.w;
@@ -1376,7 +1380,7 @@ drawbar(Monitor *m) {
       sel_win = False;
    }
 
-   XCopyArea(dpy, dc.drawable, m->barwin, dc.gc, 0, 0, m->bw, bh, 0, 0);
+   XCopyArea(dpy, dc.drawable, m->barwin, dc.gc, 0, 0, m->bw, m->bh, 0, 0);
    XSync(dpy, False);
 }
 
@@ -2803,7 +2807,7 @@ tile(Monitor *m) {
    y = m->wy;
    w = (m->wx + mw > c->x + c->w) ? m->wx + m->ww - x : m->ww - mw;
    h = m->wh / n;
-   if(h < bh)
+   if(h < m->bh)
       h = m->wh;
    for(i = 0, c = nexttiled(c->next); c; c = nexttiled(c->next), i++) {
       resize(c, x, y, w - 2 * c->bw, /* remainder */ ((i + 1 == n)
@@ -2825,7 +2829,7 @@ togglebarm(Monitor *m, int toggle)
    else
       m->showbar = !m->showbar;
    updatebarpos(m);
-   XMoveResizeWindow(dpy, m->barwin, m->wx, m->by, m->ww, bh);
+   XMoveResizeWindow(dpy, m->barwin, m->wx, m->by, m->ww, m->bh);
    arrange(m);
 
    if(systray_enable && m->primary)
@@ -2833,7 +2837,7 @@ togglebarm(Monitor *m, int toggle)
       XWindowChanges wc;
       if(!m->showbar)
       {
-         wc.y = -bh;
+         wc.y = -m->bh;
          XConfigureWindow(dpy, traywin, CWY, &wc);
       }
       else
@@ -2842,7 +2846,7 @@ togglebarm(Monitor *m, int toggle)
             if(topbar)
                wc.y = 0;
             else
-               wc.y = sh - bh;
+               wc.y = sh - m->bh;
 
             XConfigureWindow(dpy, traywin, CWY, &wc);
             systray_update();
@@ -2994,13 +2998,13 @@ updatebarpos(Monitor *m) {
 
    /* get right stuff */
    if(m->showbar) {
-      m->wh -= bh;
+      m->wh -= m->bh;
       m->by = m->topbar ? m->wy : m->wy + m->wh;
       m->wy = m->topbar ? m->wy + bh + m->margin->y : m->wy;
       m->wh -= m->margin->h;
    }
    else
-      m->by = -bh;
+      m->by = -m->bh;
 }
 
 Bool
@@ -3057,7 +3061,7 @@ updategeom(void) {
 
                dwmbar[i].x += m->wx;
                dwmbar[i].y += m->my;
-               dwmbar[i].h += bh;
+               m->bh = dwmbar[i].h += bh;
                m->bw = dwmbar[i].w += m->mw;
 
                if(i == primarymon) m->primary = 1; else m->primary = 0;
@@ -3104,7 +3108,7 @@ updategeom(void) {
 
          dwmbar[0].x += mons->wx;
          dwmbar[0].y += mons->wy;
-         dwmbar[0].h += bh;
+         mons->bh = dwmbar[0].h += bh;
          mons->bw = dwmbar[0].w += mons->mw;
 
          updatebarpos(mons);
@@ -3474,7 +3478,7 @@ bstackhoriz(Monitor *m) {
    w = m->ww;
    h = (m->wy + mh > c->y + c->h) ? m->wy + m->wh - y : m->wh - mh;
    h /= n;
-   if(h < bh)
+   if(h < m->bh)
       h = m->wh;
    for(i = 0, c = nexttiled(c->next); c; c = nexttiled(c->next), i++) {
       resize(c, x, y, w - 2 * c->bw, /* remainder */ ((i + 1 == n)
@@ -3628,7 +3632,7 @@ systray_update(void) {
    if(topbar)
       pos_y = m->my;
    else
-      pos_y = sh - bh;
+      pos_y = sh - m->bh;
 
    if(!systray_enable) return;
 
@@ -3646,7 +3650,7 @@ systray_update(void) {
    }
 
    pos -= x;
-   XMoveResizeWindow(dpy, traywin, pos, pos_y, x, bh);
+   XMoveResizeWindow(dpy, traywin, pos, pos_y, x, m->bh);
 
    XMapRaised(dpy, traywin);
    XSync(dpy, False);
@@ -3939,7 +3943,7 @@ bstack(Monitor *m) {
    y = (m->wy + mh > c->y + c->h) ? c->y + c->h + 2 * c->bw : m->wy + mh;
    w = m->ww / n;
    h = (m->wy + mh > c->y + c->h) ? m->wy + m->wh - y : m->wh - mh;
-   if(w < bh)
+   if(w < m->bh)
       w = m->ww;
    for(i = 0, c = nexttiled(c->next); c; c = nexttiled(c->next), i++) {
       resize(c, x, y, /* remainder */ ((i + 1 == n)
