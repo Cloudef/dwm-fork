@@ -1356,8 +1356,8 @@ drawbar(Monitor *m) {
          dc.w = MIN(ow, tw);
 
          if(dc.w > mw)        dc.w = mw;
-         if(c == lastvis)     dc.w = ow;
-         else if(c == m->sel) dc.w = tw;
+         //if(c == lastvis)     dc.w = ow;
+         if(c == m->sel) dc.w = tw;
 
          if(m->sel == c) drawtext(c->name, 5, True);
          else            drawtext(c->name, 6, True);
