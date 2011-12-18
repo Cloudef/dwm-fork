@@ -1321,10 +1321,15 @@ drawbar(Monitor *m) {
    for(c = m->clients; c && (!ISVISIBLE(c) || c->iswidget); c = c->next);
    firstvis = c;
 
-   dc.w = dc.x - x - 4;
+   /* flush titlebar */
+   dc.w = dc.x - x;
+   dc.x = m->titlebarbegin;
+   drawnull(0);
+
+   /* add bit gap before status text / systray */
+   dc.w -= 4;
    if (dc.w < 0) dc.w = 1; /* hopefully this does not happen */
 
-   dc.x = m->titlebarbegin;
    if(n > 0) {
       mw = dc.w / n;
       extra = 0;
@@ -1360,7 +1365,7 @@ drawbar(Monitor *m) {
          c->tw = dc.w; /* store title width */
 
          if(c != firstvis)
-            drawvline(col);
+            drawvline(7);
 
          dc.x += dc.w;
          dc.w = ow - dc.w;
