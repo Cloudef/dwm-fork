@@ -1403,14 +1403,6 @@ drawvline(size_t col_index) {
    XRectangle r = { dc.x , dc.y, 1, dc.h };
    XSetForeground(dpy, dc.gc, dc.colors[col_index][ColBG]);
    XFillRectangles(dpy, dc.drawable, dc.gc, &r, 1);
-
-   XRectangle r2 = { dc.x, dc.y + 4, 1, 2 };
-   XSetForeground(dpy, dc.gc, dc.colors[col_index][ColFG]);
-   XFillRectangles(dpy, dc.drawable, dc.gc, &r2, 1);
-
-   XRectangle r3 = { dc.x, dc.y + 8, 1, 2 };
-   XSetForeground(dpy, dc.gc, dc.colors[col_index][ColFG]);
-   XFillRectangles(dpy, dc.drawable, dc.gc, &r3, 1);
 }
 
 void
