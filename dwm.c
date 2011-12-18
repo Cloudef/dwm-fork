@@ -87,6 +87,7 @@ struct Client {
    int fw, fh;
    int basew, baseh, incw, inch, maxw, maxh, minw, minh;
    int bw, oldbw;
+   int tw;
    unsigned int tags;
    Bool isfullscreen, isfixed, isfloating, isborder, iswidget, isbelow, isabove, iszombie, issticky, isurgent, oldstate;
    Client *next;
@@ -251,6 +252,7 @@ static void           drawcoloredtext(char *text);
 // static void                   drawsquare(Bool filled, Bool empty, unsigned long col[ColLast]);
 static void           drawsquare(Bool filled, Bool empty, Bool invert, size_t col_index);
 static void           drawtext(const char *text, size_t col_index, Bool pad);
+static void           drawnull(size_t col_index);
 // static void         drawtext(const char *text, unsigned long col[ColLast], Bool invert, Bool pad);
 static void           enternotify(XEvent *e);
 static void           motionnotify(XEvent *e);
@@ -397,9 +399,6 @@ Display *dpy;
 DC dc;
 Monitor *mons = NULL, *selmon = NULL;
 Window root;
-
-Bool sel_win = False;
-Bool istitledraw = False;
 
 /* configuration, allows nested code to access above variables */
 #include "version.h"
@@ -710,8 +709,14 @@ createmenu( menu_t *m, const menuCtx *ctx, int x, int y ) {
 
    for(i = 0; m->ctx[i].title; ++i)
    {
+#ifdef XFT
       if(m->w < TEXTW2(m->ctx[i].title))
          m->w = TEXTW2(m->ctx[i].title);
+#else
+      if(m->w < TEXTW(m->ctx[i].title))
+         m->w = TEXTW(m->ctx[i].title);
+#endif
+
       if(strlen(m->ctx[i].title)) { m->h += dc.font.height; valid = 1; }
       else m->h += 4;
    }
@@ -1058,7 +1063,6 @@ configure(Client *c) {
 void
 configurenotify(XEvent *e) {
    Monitor *m;
-   int b = 0;
    XConfigureEvent *ev = &e->xconfigure;
 
    if(ev->window == root) {
@@ -1217,7 +1221,13 @@ drawbar(Monitor *m) {
    char    posbuf[10];
    size_t  col;
    Client         *c, *firstvis, *lastvis = NULL;
-   DC seldc;
+
+   /* reset bar */
+   /*
+   dc.x = 0;
+   dc.w = m->bw;
+   drawnull(0);
+   */
 
    for(c = m->clients; c; c = c->next) {
       if(ISVISIBLE(c))
@@ -1229,7 +1239,7 @@ drawbar(Monitor *m) {
             urg |= c->tags;
       }
    }
-   dc.x    = 0;
+   dc.x     = 0;
    tagcount = 0;
 
    for(i = 0; i < LENGTH(tags); i++) {
@@ -1280,6 +1290,7 @@ drawbar(Monitor *m) {
          x = dc.x + dc.w;
       }
    }
+   m->titlebarbegin = x;
 
 #ifndef STATUS_MONITOR
    if(((m == selmon || alwaysdrawstatus) && !inversestatus) || (inversestatus && m != selmon))
@@ -1306,19 +1317,17 @@ drawbar(Monitor *m) {
    }
    else
    { dc.x = m->bw; if(systray_enable) if(m->primary) dc.x -= systray_get_width(); }
-   m->titlebarend = dc.x;
 
    for(c = m->clients; c && (!ISVISIBLE(c) || c->iswidget); c = c->next);
    firstvis = c;
 
-   // col = m == selmon ? dc.sel : dc.norm;
-   col = 7;
-   dc.w = dc.x - x;
-   dc.x = x;
+   dc.w = dc.x - x - 4;
+   if (dc.w < 0) dc.w = 1; /* hopefully this does not happen */
+
+   dc.x = m->titlebarbegin;
    if(n > 0) {
       mw = dc.w / n;
       extra = 0;
-      seldc = dc;
       i = 0;
 
       while(c) {
@@ -1333,7 +1342,7 @@ drawbar(Monitor *m) {
       c = firstvis;
       x = dc.x;
    }
-   m->titlebarbegin = dc.x;
+
    while(dc.w > m->bh) {
       if(c) {
 
@@ -1341,20 +1350,17 @@ drawbar(Monitor *m) {
          tw = TEXTW(c->name);
          dc.w = MIN(ow, tw);
 
-         if(dc.w > mw) dc.w    = mw;
-         if(m->sel == c) seldc = dc;
-         if(c == lastvis) dc.w = ow;
+         if(dc.w > mw)        dc.w = mw;
+         if(c == lastvis)     dc.w = ow;
+         else if(c == m->sel) dc.w = tw;
 
-         drawtext(c->name, 6, True);
+         if(m->sel == c) drawtext(c->name, 5, True);
+         else            drawtext(c->name, 6, True);
+
+         c->tw = dc.w; /* store title width */
 
          if(c != firstvis)
             drawvline(col);
-
-         /* useless
-         istitledraw = True;
-         drawsquare(c->isfixed, c->isfloating, False, col);
-         istitledraw = False;
-         */
 
          dc.x += dc.w;
          dc.w = ow - dc.w;
@@ -1365,17 +1371,15 @@ drawbar(Monitor *m) {
          break;
       }
    }
+   m->titlebarend = dc.x;
 
+#if 0
    if(m == selmon && m->sel && ISVISIBLE(m->sel) && !m->sel->iswidget) {
-      dc = seldc;
       sel_win = True;
       drawtext(m->sel->name, 5, True);
-      /* useless
-      drawsquare(m->sel->isfixed, m->sel->isfloating, True, col);
-      */
-
       sel_win = False;
    }
+#endif
 
    XCopyArea(dpy, dc.drawable, m->barwin, dc.gc, 0, 0, m->bw, m->bh, 0, 0);
    XSync(dpy, False);
@@ -1490,10 +1494,7 @@ drawsquare(Bool filled, Bool empty, Bool invert, size_t col_index) {
    gcv.foreground = dc.colors[col_index][invert ? ColBG : ColFG];
    XChangeGC(dpy, dc.gc, GCForeground, &gcv);
    x = (dc.font.ascent + dc.font.descent + 2) / 4;
-   if(istitledraw)
-      r.x = dc.x + 3;
-   else
-      r.x = dc.x + 1;
+   r.x = dc.x + 1;
    r.y = dc.y + 1;
    if(filled) {
       r.width = r.height = x + 1;
@@ -1506,15 +1507,16 @@ drawsquare(Bool filled, Bool empty, Bool invert, size_t col_index) {
 }
 
 void
+drawnull(size_t col_index) {
+   XRectangle r = { dc.x , dc.y, dc.w , dc.h };
+   XSetForeground(dpy, dc.gc, dc.colors[col_index][ColBG]);
+   XFillRectangles(dpy, dc.drawable, dc.gc, &r, 1);
+}
+
+void
 drawtext(const char *text, size_t col_index, Bool pad) {
    char buf[256];
    int i, p, x, y, h, len, olen;
-
-   if(sel_win)
-   {
-      dc.x = dc.x + 3;
-      dc.w = dc.w - 5;
-   }
 
    XRectangle r = { dc.x , dc.y, dc.w , dc.h };
    XSetForeground(dpy, dc.gc, dc.colors[col_index][ColBG]);
@@ -1522,6 +1524,7 @@ drawtext(const char *text, size_t col_index, Bool pad) {
 
    if(!text)
       return;
+
    olen = strlen(text);
    h    = pad ? (dc.font.ascent + dc.font.descent) : 0;
 #ifndef XFT
@@ -1530,10 +1533,12 @@ drawtext(const char *text, size_t col_index, Bool pad) {
    y    = dc.y + dc.h - dc.font.height;
 #endif
    x    = dc.x + (h / 2);
+
    /* shorten text if necessary */
    for(len = MIN(olen, sizeof buf); len && textnw(text, len) > dc.w; len--);
    if(!len)
       return;
+
    memcpy(buf, text, len);
    if(len < olen) {
       for(i = len - 1, p = 0; i; --i, ++p) {
@@ -1558,8 +1563,6 @@ drawtext(const char *text, size_t col_index, Bool pad) {
    pango_layout_set_text(dc.plo, buf, len);
    pango_xft_render_layout(dc.xftdrawable, &dc.xftcolors[col_index][ColFG], dc.plo, x * PANGO_SCALE, y * PANGO_SCALE);
 #else
-   if(len < olen)
-      for(i = len; i && i > len - 3; buf[--i] = '.');
    XSetForeground(dpy, dc.gc, dc.colors[col_index][ColFG]);
    if(dc.font.set)
       XmbDrawString(dpy, dc.drawable, dc.font.set, dc.gc, x, y, buf, len);
@@ -3189,6 +3192,7 @@ updatetitle(Client *c) {
       gettextprop(c->win, XA_WM_NAME, c->name, sizeof c->name);
    if(c->name[0] == '\0') /* hack to mark broken clients */
       strcpy(c->name, broken);
+   c->tw = TEXTW(c->name);
 }
 
 void
@@ -3743,33 +3747,19 @@ dwm_send_message(Window d, Window w, char *atom, long d0, long d1, long d2, long
 
 void
 focusonclick(const Arg *arg) {
-   int x, w, mw = 0, tw, n = 0, i = 0, extra = 0;
+   int x, w;
    Monitor *m = selmon;
    Client *c, *firstvis;
 
    for(c = m->clients; c && (!ISVISIBLE(c) || c->iswidget); c = c->next);
    firstvis = c;
-   for(c = m->clients; c; c = c->next)
-      if(ISVISIBLE(c) && !c->iswidget)
-         n++;
-
-   if(n > 0) {
-      mw = (m->titlebarend - m->titlebarbegin) / n;
-      c = firstvis;
-      while(c) {
-         tw = TEXTW(c->name);
-         if(tw < mw) extra += (mw - tw); else i++;
-         for(c = c->next; c && (!ISVISIBLE(c) || c->iswidget); c = c->next);
-      }
-      if(i > 0) mw += extra / i;
-   }
 
    x=m->titlebarbegin;
 
    c = firstvis;
    while(x < m->titlebarend) {
       if(c) {
-         w = MIN(TEXTW(c->name), mw);
+         w = c->tw;
          if (x < arg->i && x+w > arg->i) {
             focus(c);
             if(c->isfloating)
@@ -3791,33 +3781,19 @@ focusonclick(const Arg *arg) {
 
 void
 closeonclick(const Arg *arg) {
-   int x, w, mw = 0, tw, n = 0, i = 0, extra = 0;
+   int x, w;
    Monitor *m = selmon;
    Client *c, *firstvis;
 
    for(c = m->clients; c && (!ISVISIBLE(c) || c->iswidget); c = c->next);
    firstvis = c;
-   for(c = m->clients; c; c = c->next)
-      if(ISVISIBLE(c) && !c->iswidget)
-         n++;
-
-   if(n > 0) {
-      mw = (m->titlebarend - m->titlebarbegin) / n;
-      c  = firstvis;
-      while(c) {
-         tw = TEXTW(c->name);
-         if(tw < mw) extra += (mw - tw); else i++;
-         for(c = c->next; c && (!ISVISIBLE(c) || c->iswidget); c = c->next);
-      }
-      if(i > 0) mw += extra / i;
-   }
 
    x=m->titlebarbegin;
 
    c = firstvis;
    while(x < m->titlebarend) {
       if(c) {
-         w = MIN(TEXTW(c->name), mw);
+         w = c->tw;
          if (x < arg->i && x+w > arg->i) {
             focus(c);
             restack(selmon);
