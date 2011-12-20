@@ -93,7 +93,7 @@ static const Rule rules[] = {
    { "Oblogout", NULL,       NULL,         0,            URXVTQ,         0 },
    { "MaCoPiX",  NULL,       NULL,         0,            WIDGET,         1 },
    { "Kupfer.py",NULL,       NULL,         0,            WIDGET,        -1 },
-   { "dzen",     "dzen2",    NULL,         0,            CONKY,         -1 },
+   { "dzen",     "dzen2",    NULL,         0,            CONKY,          0 },
    { "Conky",    NULL,       NULL,         0,            CONKY,          1 },
    { "URxvt",    NULL,       NULL,         0,            TERM,          -1 },
    { "URxvt",    "URxvtq",   NULL,         0,            URXVTQ,         0 },
