@@ -1,4 +1,6 @@
+#include <assert.h>
 #include <errno.h>
+#include <libgen.h>
 #include <locale.h>
 #include <stdarg.h>
 #include <signal.h>
@@ -9,6 +11,7 @@
 #include <err.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <sys/stat.h>
 #include <X11/cursorfont.h>
 #include <X11/keysym.h>
 #include <X11/Xatom.h>
@@ -2720,18 +2723,58 @@ sigchld(int unused) {
    while(0 < waitpid(-1, NULL, WNOHANG));
 }
 
+#define SPAWN_CWD_DELIM " []{}[]<>\"':"
 void
 spawn(const Arg *arg) {
    pid_t pid;
-   if((pid = fork()) == 0) {
-      if(dpy)
-         close(ConnectionNumber(dpy));
-      setsid();
-      execvp(((char **)arg->v)[0], (char **)arg->v);
-      fprintf(stderr, "dwm: execvp %s", ((char **)arg->v)[0]);
-      perror(" failed");
-      _exit(0);
+
+   if((pid = fork()) != 0)
+      return;
+   if(dpy)
+      close(ConnectionNumber(dpy));
+
+   /* open new programs in same working directory
+    * as focused application */
+   if (selmon->sel)
+   {
+         const char *home = getenv("HOME");
+         assert(home && strchr(home, '/'));
+         const size_t homelen= strlen(home);
+         char *cwd, *pathbuf = NULL;
+         struct stat statbuf;
+
+         /* NOTE: this needs the application to show path
+          * in it's name */
+         cwd = strtok(selmon->sel->name, SPAWN_CWD_DELIM);
+         while (cwd) {
+            if (*cwd == '~') { /* expand to $HOME */
+               if(!(pathbuf = malloc(homelen + strlen(cwd))))
+                  die("fatal: you are out of memory dummy!\n");
+               strcpy(strcpy(pathbuf, home) + homelen, cwd + 1);
+               cwd = pathbuf;
+            }
+
+            if (strchr(cwd, '/') && !stat(cwd, &statbuf))
+            {
+               if (!S_ISDIR(statbuf.st_mode))
+                  cwd = dirname(cwd);
+
+               if (!chdir(cwd))
+                  break;
+            }
+
+            cwd = strtok(NULL, SPAWN_CWD_DELIM);
+         }
+
+      /* our memory shall be gone */
+      free(pathbuf);
    }
+
+   setsid();
+   execvp(((char **)arg->v)[0], (char **)arg->v);
+   fprintf(stderr, "dwm: execvp %s", ((char **)arg->v)[0]);
+   perror(" failed");
+   _exit(0);
 }
 
 void
