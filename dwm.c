@@ -2723,7 +2723,7 @@ sigchld(int unused) {
    while(0 < waitpid(-1, NULL, WNOHANG));
 }
 
-#define SPAWN_CWD_DELIM " []{}[]<>\"':"
+#define SPAWN_CWD_DELIM "()[]{}[]<>\"':"
 void
 spawn(const Arg *arg) {
    pid_t pid;
@@ -2742,32 +2742,57 @@ spawn(const Arg *arg) {
          const size_t homelen= strlen(home);
          char *cwd, *pathbuf = NULL;
          struct stat statbuf;
+         int check_again = 0;
 
-         /* NOTE: this needs the application to show path
-          * in it's name */
-         cwd = strtok(selmon->sel->name, SPAWN_CWD_DELIM);
-         while (cwd) {
-            if (*cwd == '~') { /* expand to $HOME */
-               if(!(pathbuf = malloc(homelen + strlen(cwd))))
-                  die("fatal: you are out of memory dummy!\n");
-               strcpy(strcpy(pathbuf, home) + homelen, cwd + 1);
-               cwd = pathbuf;
-            }
-
-            if (strchr(cwd, '/') && !stat(cwd, &statbuf))
-            {
-               if (!S_ISDIR(statbuf.st_mode))
-                  cwd = dirname(cwd);
-
-               if (!chdir(cwd))
-                  break;
-            }
-
-            cwd = strtok(NULL, SPAWN_CWD_DELIM);
+         /* Check first if the whole thing is a path */
+         cwd = selmon->sel->name;
+         if (*cwd == '~') { /* expand to $HOME */
+            if(!(pathbuf = malloc(homelen + strlen(cwd))))
+               die("fatal: you are out of memory dummy!\n");
+            strcpy(strcpy(pathbuf, home) + homelen, cwd + 1);
+            cwd = pathbuf;
          }
 
-      /* our memory shall be gone */
-      free(pathbuf);
+         if (strchr(cwd, '/') && !stat(cwd, &statbuf))
+         {
+            if (!S_ISDIR(statbuf.st_mode))
+               cwd = dirname(cwd);
+
+            if (!chdir(cwd))
+               check_again = 1;
+         }
+         if (pathbuf) free(pathbuf);
+         pathbuf = NULL;
+
+         if (!check_again)
+         {
+            /* NOTE: this needs the application to show path
+             * in it's name */
+            cwd = strtok(selmon->sel->name, SPAWN_CWD_DELIM);
+            while (cwd) {
+               if (*cwd == '~') { /* expand to $HOME */
+                  if(!(pathbuf = malloc(homelen + strlen(cwd))))
+                     die("fatal: you are out of memory dummy!\n");
+                  strcpy(strcpy(pathbuf, home) + homelen, cwd + 1);
+                  cwd = pathbuf;
+               }
+
+               if (strchr(cwd, '/') && !stat(cwd, &statbuf))
+               {
+                  if (!S_ISDIR(statbuf.st_mode))
+                     cwd = dirname(cwd);
+
+                  if (!chdir(cwd))
+                     break;
+               }
+
+               cwd = strtok(NULL, SPAWN_CWD_DELIM);
+            }
+         }
+
+         /* our memory shall be gone */
+         if (pathbuf) free(pathbuf);
+         pathbuf = NULL;
    }
 
    setsid();
