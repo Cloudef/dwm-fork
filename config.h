@@ -92,14 +92,13 @@ static const Rule rules[] = {
    { "File-roller",  NULL,   NULL,         0,            FLOAT,         -1 },
    { "Oblogout", NULL,       NULL,         0,            URXVTQ,         0 },
    { "MaCoPiX",  NULL,       NULL,         0,            WIDGET,         1 },
-   { "Kupfer.py",NULL,       NULL,         0,            WIDGET,        -1 },
    { "dzen",     "dzen2",    NULL,         0,            CONKY,          0 },
    { "Conky",    NULL,       NULL,         0,            CONKY,          1 },
    { "URxvt",    NULL,       NULL,         0,            TERM,          -1 },
    { "URxvt",    "URxvtq",   NULL,         0,            URXVTQ,         0 },
    { "URxvt",    NULL,       "rTorrent",   1 << 2,       TERM,           1 },
    { "URxvt",    NULL,       "SnowNews",   1 << 1,       TERM,           1 },
-   { "URxvt",    "IRC && MSN", NULL,       1 << 0,       TERM,           1 },
+   { "URxvt",    "IRC",      NULL,         1 << 0,       TERM,           1 },
    { "Opera",    NULL,       NULL,         0,            TERM,          -1 },
 };
 
@@ -111,7 +110,7 @@ static const Bool resizehints = True; /* True means respect size hints in tiled 
 static const int nmaster = 2;
 
 /* PATHS */
-#define FILEMANAGER     "thunar"
+#define FILEMANAGER     "spacefm"
 #define HOME            "/home/jari"
 #define GAMES           "/media/Storage/Pelit"
 #define EMUS            "/media/Storage/Emulaattorit"
@@ -159,14 +158,13 @@ static const char *termcmd[]     = { "urxvt",            NULL };
 static const char *dvolminus[]   = { "dvol", "-d", "1",  NULL };
 static const char *dvolplus[]    = { "dvol", "-i", "1",  NULL };
 static const char *dvolmute[]    = { "dvol", "-t",       NULL };
-static const char *kupfer[]      = { "kupfer",           NULL };
 static const char *oblogout[]    = { "oblogout",         NULL };
 static const char *prnt[]        = { "scrot",            NULL };
 static const char *opera[]       = { "opera",            NULL };
 static const char *nitrogen[]    = { "nitrogen",         NULL };
 static const char *urxvtq[]      = { "URXVTQ",           NULL };
-static const char *irc_msn[]     = { "urxvt", "-title", "IRC && MSN", \
-                                     "-name", "IRC && MSN", "-e", "TMUX_IRC_MSN", NULL };
+static const char *irc_msn[]     = { "urxvt", "-title", "IRC", \
+                                     "-name", "IRC", "-e", "IRC", NULL };
 static const char *torrent[]     = { "TORRENT",          NULL };
 static const char *rss[]         = { "RSS",              NULL };
 static const char *comix[]       = { "comix",            NULL };
@@ -202,7 +200,7 @@ static const menuCtx internetMenu[] = {
    MENUSEP,
    { "rTorrent",     NULL, spawn, {.v = torrent } },
    MENUSEP,
-   { "IRC && MSN",   NULL, spawn, {.v = irc_msn } },
+   { "IRC",          NULL, spawn, {.v = irc_msn } },
    MENUSEP,
    { "RSS",          NULL, spawn, {.v = rss } },
    MENUEND,
@@ -216,7 +214,7 @@ static const menuCtx gameMenu[] = {
    { "The Last Remnant       ", NULL, spawn,
    pikakuvake(GAMES"/The Last Remnant/Binaries/TLR.exe") },
    { "TES V : Skyrim         ", NULL, spawn,
-   pikakuvake(GAMES"/The Elder Scrolls V Skyrim/SkyrimLauncher.exe") },
+   pikakuvake(GAMES"/The Elder Scrolls V Skyrim/skse_loader.exe") },
    { "ALLTYNEX Second        ", NULL, spawn,
    pikakuvake(GAMES"/ALLTYNEX Second/alltynex2nd.exe") },
    { "Edens Aegis            ", NULL, spawn,
@@ -298,7 +296,6 @@ static Key keys[] = {
    { MODKEY,                       XK_q,              killclient,       {0} },
    { ALTKEY,                       XK_s,              resizemouse,      {0} },
    { MODKEY,                       XK_s,              togglesticky,     {0} },
-   { ALTKEY,                       XK_F2,             spawn,            {.v = kupfer} },
    { MODKEY,                       XK_0,              view,             {.ui = ~0 } },
    { MODKEY|ShiftMask,             XK_0,              tag,              {.ui = ~0 } },
    { MODKEY,                       XK_comma,          focusmonitor,     {.i = -1 } },
