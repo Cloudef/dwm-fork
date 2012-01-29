@@ -163,8 +163,7 @@ static const char *prnt[]        = { "scrot",            NULL };
 static const char *opera[]       = { "opera",            NULL };
 static const char *nitrogen[]    = { "nitrogen",         NULL };
 static const char *urxvtq[]      = { "URXVTQ",           NULL };
-static const char *irc_msn[]     = { "urxvt", "-title", "IRC", \
-                                     "-name", "IRC", "-e", "IRC", NULL };
+static const char *irc[]         = { "IRC",              NULL };
 static const char *torrent[]     = { "TORRENT",          NULL };
 static const char *rss[]         = { "RSS",              NULL };
 static const char *comix[]       = { "comix",            NULL };
@@ -200,7 +199,7 @@ static const menuCtx internetMenu[] = {
    MENUSEP,
    { "rTorrent",     NULL, spawn, {.v = torrent } },
    MENUSEP,
-   { "IRC",          NULL, spawn, {.v = irc_msn } },
+   { "IRC",          NULL, spawn, {.v = irc } },
    MENUSEP,
    { "RSS",          NULL, spawn, {.v = rss } },
    MENUEND,
