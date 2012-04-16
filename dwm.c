@@ -2796,6 +2796,7 @@ spawn(const Arg *arg) {
    }
 
    setsid();
+   freopen("/dev/null", "w", stdout); freopen("/dev/null", "w", stderr);
    execvp(((char **)arg->v)[0], (char **)arg->v);
    fprintf(stderr, "dwm: execvp %s", ((char **)arg->v)[0]);
    perror(" failed");

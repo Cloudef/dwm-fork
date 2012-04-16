@@ -12,11 +12,11 @@
 /*   border,   foreground ,background */
 static const char colors[MAXCOLORS][ColLast][8] = {
    { "#212121", "#9d9d9d", "#161616" }, //  0 = Normal tag
-   { "#212121", "#44ddff", "#161616" }, //  1 = Selected tag
+   { "#ff950e", "#44ddff", "#161616" }, //  1 = Selected tag
    { "#212121", "#04c656", "#161616" }, //  2 = Urgent tag
    { "#212121", "#9d9d9d", "#161616" }, //  3 = Unselected tag with windows
    { "#212121", "#FEA63C", "#161616" }, //  4 = Layout
-   { "#212121", "#9d9d9d", "#161616" }, //  5 = Selected window
+   { "#ff950e", "#9d9d9d", "#161616" }, //  5 = Selected window
    { "#212121", "#444444", "#161616" }, //  6 = Unselected window
    { "#212121", "#444444", "#444444" }, //  7 = Window pager seperator
    { "#212121", "#CACACA", "#161616" }, //  8 = Status bar
@@ -25,7 +25,7 @@ static const char colors[MAXCOLORS][ColLast][8] = {
    { "#212121", "#1793D1", "#161616" }, // 11 = Seperator menu
 };
 
-static const unsigned int borderpx  = 1;        /* border pixel of windows */
+static const unsigned int borderpx  = 2;        /* border pixel of windows */
 static const Bool showbar           = True;     /* False means no bar */
 static const Bool topbar            = True;     /* False means bottom bar */
 static const Bool clicktofocus      = True;     /* Click to focus windows */
@@ -85,7 +85,7 @@ Bool autohide             = False;
 #define URXVTQ True,    False,   False,   True,    False,   True,    False
 #define DOCK   True,    True,    False,   True,    False,   True,    False
 #define PANEL  True,    True,    True,    False,   False,   True,    False
-#define TERM   False,   False,   False,   False,   False,   False,   False
+#define TERM   False,   False,   False,   False,   False,   False,   True
 
 static const Rule rules[] = {
    /* class      instance    title       tags mask     type           monitor */
@@ -99,7 +99,7 @@ static const Rule rules[] = {
    { "URxvt",    NULL,       "rTorrent",   1 << 2,       TERM,           1 },
    { "URxvt",    NULL,       "SnowNews",   1 << 1,       TERM,           1 },
    { "URxvt",    "IRC",      NULL,         1 << 0,       TERM,           1 },
-   { "Opera",    NULL,       NULL,         0,            TERM,          -1 },
+   { "dwb",      NULL,       NULL,         0,            TERM,          -1 },
 };
 
 /* layout(s) */
@@ -160,7 +160,7 @@ static const char *dvolplus[]    = { "dvol", "-i", "1",  NULL };
 static const char *dvolmute[]    = { "dvol", "-t",       NULL };
 static const char *oblogout[]    = { "oblogout",         NULL };
 static const char *prnt[]        = { "scrot",            NULL };
-static const char *opera[]       = { "opera",            NULL };
+static const char *dwb[]         = { "dwb",              NULL };
 static const char *nitrogen[]    = { "nitrogen",         NULL };
 static const char *urxvtq[]      = { "URXVTQ",           NULL };
 static const char *irc[]         = { "IRC",              NULL };
@@ -195,7 +195,7 @@ static const menuCtx touhouMenu[] = {
 };
 
 static const menuCtx internetMenu[] = {
-   { "Opera",        NULL, spawn, {.v = opera } },
+   { "dwb",          NULL, spawn, {.v = dwb } },
    MENUSEP,
    { "rTorrent",     NULL, spawn, {.v = torrent } },
    MENUSEP,
@@ -238,7 +238,6 @@ static const menuCtx gameMenu[] = {
    { "MAME                   ", NULL, spawn, {.v = mame } },
    { "NO$GBA                 ", NULL, spawn,
    pikakuvake(EMUS"/NoGBA/NO$GBA.exe") },
-   { "VBA-M                  ", NULL, spawn, {.v = gvbam } },
    MENUSEP,
    { "Steam                  ", NULL, spawn, STEAM  },
    { "Desura                 ", NULL, spawn, DESURA },
